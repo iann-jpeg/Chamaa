@@ -1,0 +1,92 @@
+from decimal import Decimal
+from django.core.validators import MinValueValidator
+from django.db import models
+from core.models import Member, Organization
+
+
+class Account(models.Model):
+    class Kind(models.TextChoices):
+        MEMBERSHIP = "membership", "Membership"
+        SAVINGS = "savings", "Savings"
+        WALLET = "wallet", "Wallet"
+        OPERATIONS = "operations", "Operations"
+        INVESTMENT = "investment", "Investment"
+        LOAN = "loan", "Loan portfolio"
+
+    organization = models.ForeignKey(Organization, on_delete=models.PROTECT)
+    member = models.ForeignKey(Member, null=True, blank=True, on_delete=models.PROTECT)
+    name = models.CharField(max_length=160)
+    kind = models.CharField(max_length=20, choices=Kind.choices)
+    currency = models.CharField(max_length=3, default="KES")
+    opening_balance = models.DecimalField(max_digits=18, decimal_places=2, default=Decimal("0"))
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["organization", "member", "kind"], name="unique_account_kind"
+            )
+        ]
+
+    @property
+    def balance(self):
+        return self.opening_balance + sum(
+            (entry.amount for entry in self.entries.filter(status=LedgerEntry.Status.POSTED)),
+            Decimal("0"),
+        )
+
+    def __str__(self):
+        return self.name
+
+
+class LedgerEntry(models.Model):
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        POSTED = "posted", "Posted"
+        VOID = "void", "Voided"
+
+    account = models.ForeignKey(Account, related_name="entries", on_delete=models.PROTECT)
+    reference = models.CharField(max_length=80)
+    description = models.CharField(max_length=240)
+    amount = models.DecimalField(max_digits=18, decimal_places=2)
+    status = models.CharField(max_length=10, choices=Status.choices, default=Status.POSTED)
+    posted_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["account", "reference"], name="unique_ledger_reference_per_account"
+            )
+        ]
+        ordering = ["-posted_at"]
+
+
+class ContributionProduct(models.Model):
+    organization = models.ForeignKey(Organization, on_delete=models.PROTECT)
+    name = models.CharField(max_length=120)
+    amount = models.DecimalField(max_digits=18, decimal_places=2, validators=[MinValueValidator(Decimal("0.01"))])
+    frequency = models.CharField(max_length=20, default="monthly")
+    account_kind = models.CharField(max_length=20, choices=Account.Kind.choices, default=Account.Kind.SAVINGS)
+    is_active = models.BooleanField(default=True)
+
+
+class Contribution(models.Model):
+    class Status(models.TextChoices):
+        DUE = "due", "Due"
+        PARTIAL = "partial", "Partially paid"
+        PAID = "paid", "Paid"
+
+    organization = models.ForeignKey(Organization, on_delete=models.PROTECT)
+    member = models.ForeignKey(Member, on_delete=models.PROTECT)
+    product = models.ForeignKey(ContributionProduct, on_delete=models.PROTECT)
+    due_date = models.DateField()
+    amount_due = models.DecimalField(max_digits=18, decimal_places=2)
+    amount_paid = models.DecimalField(max_digits=18, decimal_places=2, default=Decimal("0"))
+    status = models.CharField(max_length=10, choices=Status.choices, default=Status.DUE)
+
+    def apply_payment(self, amount):
+        if amount <= 0 or self.amount_paid + amount > self.amount_due:
+            raise ValueError("Payment must be positive and cannot exceed the outstanding amount.")
+        self.amount_paid += amount
+        self.status = self.Status.PAID if self.amount_paid == self.amount_due else self.Status.PARTIAL
+        self.save(update_fields=["amount_paid", "status"])
