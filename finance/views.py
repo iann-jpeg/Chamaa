@@ -4,13 +4,31 @@ from django.shortcuts import get_object_or_404
 from django.contrib.auth.decorators import login_required
 from core.models import OrganizationMembership
 from django.views.decorators.http import require_GET, require_POST
-from .models import Account
-from .services import post_entry
+from django.conf import settings
+from django.db import connection
+from .models import Account, WalletWithdrawal
+from .services import approve_withdrawal, get_or_create_member_account, post_entry
 
 
 @require_GET
 def health(request):
-    return JsonResponse({"service": "chamapilot", "status": "ok"})
+    database_status = "sqlite"
+    if getattr(settings, "MONGODB_URI", ""):
+        database_status = "mongodb-atlas"
+        try:
+            connection.ensure_connection()
+        except Exception as exc:
+            return JsonResponse({
+                "service": "chamaa",
+                "status": "degraded",
+                "database": "mongodb-atlas",
+                "error": "Database connection unavailable",
+            }, status=503)
+    return JsonResponse({
+        "service": "chamaa",
+        "status": "ok",
+        "database": database_status,
+    })
 
 
 def visible_account(request, account_id):
@@ -64,3 +82,43 @@ def create_entry(request, account_id):
         {"id": entry.id, "reference": entry.reference, "amount": str(entry.amount)},
         status=201,
     )
+
+
+@login_required
+@require_POST
+def request_withdrawal(request):
+    if not hasattr(request.user, "member_profile"):
+        return JsonResponse({"error": "Only members can request withdrawals."}, status=403)
+    try:
+        payload = json.loads(request.body)
+        amount = payload["amount"]
+        withdrawal = WalletWithdrawal.objects.create(
+            organization=request.user.member_profile.organization,
+            member=request.user.member_profile,
+            reference=payload["reference"],
+            amount=amount,
+            fee=payload.get("fee", 0),
+        )
+        wallet = get_or_create_member_account(request.user.member_profile, Account.Kind.WALLET)
+        if wallet.balance < withdrawal.amount + withdrawal.fee:
+            withdrawal.delete()
+            return JsonResponse({"error": "Insufficient wallet balance."}, status=400)
+    except (KeyError, ValueError, Account.DoesNotExist, json.JSONDecodeError) as exc:
+        return JsonResponse({"error": str(exc)}, status=400)
+    return JsonResponse({"id": withdrawal.id, "status": withdrawal.status}, status=201)
+
+
+@login_required
+@require_POST
+def approve_withdrawal_view(request, withdrawal_id):
+    withdrawal = get_object_or_404(
+        WalletWithdrawal,
+        pk=withdrawal_id,
+        organization__organizationmembership__user=request.user,
+        organization__organizationmembership__is_active=True,
+    )
+    try:
+        approve_withdrawal(withdrawal, request.user)
+    except (ValueError, PermissionError) as exc:
+        return JsonResponse({"error": str(exc)}, status=403)
+    return JsonResponse({"id": withdrawal.id, "status": withdrawal.status})

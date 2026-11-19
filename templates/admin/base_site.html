@@ -1,0 +1,14 @@
+{% extends "admin/base.html" %}
+{% load static i18n %}
+{% block title %}CHAMAA Administration{% endblock %}
+{% block extrastyle %}
+<link rel="stylesheet" href="{% static 'css/admin.css' %}">
+{{ block.super }}
+{% endblock %}
+{% block branding %}
+<div class="chamaa-admin-brand">
+    <span class="chamaa-admin-mark">C</span>
+    <div><strong>CHAMAA</strong><small>ADMINISTRATION</small></div>
+</div>
+{% endblock %}
+{% block nav-global %}{% endblock %}

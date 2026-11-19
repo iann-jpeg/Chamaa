@@ -1,6 +1,7 @@
 from decimal import Decimal
 from django.db import IntegrityError, transaction
-from .models import Account, LedgerEntry
+from django.utils import timezone
+from .models import Account, LedgerEntry, WalletWithdrawal
 
 
 @transaction.atomic
@@ -31,3 +32,20 @@ def get_or_create_member_account(member, kind):
         kind=kind,
         defaults={"name": f"{member.membership_number} {kind.title()}"},
     )[0]
+
+
+@transaction.atomic
+def approve_withdrawal(withdrawal, approver):
+    if withdrawal.status != WalletWithdrawal.Status.PENDING:
+        raise ValueError("Only pending withdrawals can be approved.")
+    if not withdrawal.organization.organizationmembership_set.filter(
+        user=approver, role__in=["admin", "treasurer"], is_active=True
+    ).exists():
+        raise PermissionError("Only an administrator or treasurer may approve withdrawals.")
+    wallet = get_or_create_member_account(withdrawal.member, Account.Kind.WALLET)
+    if wallet.balance < Decimal(withdrawal.amount) + Decimal(withdrawal.fee):
+        raise ValueError("Insufficient wallet balance.")
+    withdrawal.status = WalletWithdrawal.Status.APPROVED
+    withdrawal.approved_at = timezone.now()
+    withdrawal.save(update_fields=["status", "approved_at"])
+    return withdrawal

@@ -1,0 +1,112 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Member workspace | CHAMAA</title>
+    <link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">
+    <link rel="stylesheet" href="{% static 'css/member.css' %}">
+    <script src="{% static 'js/member.js' %}" defer></script>
+</head>
+<body>
+<div class="workspace">
+    <aside class="sidebar" id="member-sidebar">
+        <a class="brand" href="/" aria-label="CHAMAA home"><span class="brand-mark">C</span><strong>CHAMAA</strong></a>
+        <nav class="side-nav" aria-label="Member navigation">
+            <a class="active" href="{% url 'member-dashboard' %}"><span>⌂</span>Overview</a>
+            <a href="#cycles"><span>◎</span>My cycles</a>
+            <a href="#contributions"><span>↗</span>Contributions</a>
+            <a href="#notifications"><span>◉</span>Notifications{% if notifications %}<b>{{ notifications|length }}</b>{% endif %}</a>
+            <a href="#support"><span>?</span>Support</a>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="member-mini">
+                <span>{{ member.user.first_name|first|upper }}{{ member.user.last_name|first|upper }}</span>
+                <div><strong>{{ member.user.get_full_name|default:member.user.username }}</strong><small>{{ member.membership_number }}</small></div>
+            </div>
+            <form method="post" action="{% url 'member-logout' %}">{% csrf_token %}<button type="submit" aria-label="Sign out">⏻</button></form>
+        </div>
+    </aside>
+
+    <main class="member-main">
+        <header class="topbar">
+            <button class="menu-button" type="button" aria-controls="member-sidebar" aria-expanded="false" aria-label="Open navigation">☰</button>
+            <div class="organization"><span class="org-mark">{{ member.organization.name|first|upper }}</span><div><small>Organization</small><strong>{{ member.organization.name }}</strong></div></div>
+            <div class="top-actions">
+                <a href="#notifications" class="icon-button" aria-label="View notifications">◉{% if notifications %}<i></i>{% endif %}</a>
+                <span class="status-pill {{ member.status }}">{{ member.get_status_display }}</span>
+            </div>
+        </header>
+
+        {% for message in messages %}<div class="toast">{{ message }}</div>{% endfor %}
+
+        <section class="welcome-row">
+            <div><span>MEMBER WORKSPACE</span><h1>Good morning, {{ member.user.first_name|default:member.user.username }}</h1><p>Here is where your organization and cycle activity stands today.</p></div>
+            <div class="date-card"><small>Member since</small><strong>{{ member.joined_at|default:member.created_at|date:"d M Y" }}</strong></div>
+        </section>
+
+        <section class="stats-grid" aria-label="Member overview">
+            <article><div class="stat-icon green">◎</div><div><small>Joined cycles</small><strong>{{ participations|length }}</strong></div></article>
+            <article><div class="stat-icon gold">↗</div><div><small>Contribution records</small><strong>{{ contributions|length }}</strong></div></article>
+            <article><div class="stat-icon blue">◉</div><div><small>Unread notifications</small><strong>{% with unread=notifications|dictsort:"read_at" %}{{ unread|length }}{% endwith %}</strong></div></article>
+            <article><div class="stat-icon rose">?</div><div><small>Open support</small><strong>{{ tickets|length }}</strong></div></article>
+        </section>
+
+        <section class="content-grid">
+            <article class="panel cycle-panel" id="cycles">
+                <div class="panel-heading"><div><span>MY PARTICIPATION</span><h2>Chama cycles</h2></div>{% if participations %}<span class="count-chip">{{ participations|length }} total</span>{% endif %}</div>
+                {% for participation in participations %}
+                <div class="cycle-row">
+                    <div class="cycle-symbol">{{ participation.cycle.name|first|upper }}</div>
+                    <div class="cycle-info"><strong>{{ participation.cycle.name }}</strong><small>{{ participation.cycle.reference }} · Joined {{ participation.joined_at|date:"d M Y" }}</small></div>
+                    <div class="position"><small>POSITION</small><strong>#{{ participation.number }}</strong></div>
+                    <span class="cycle-status {{ participation.cycle.status }}">{{ participation.cycle.get_status_display }}</span>
+                </div>
+                {% empty %}
+                <div class="empty-state"><span>◎</span><h3>No cycle participation yet</h3><p>Available cycles and enrollment confirmations will appear here.</p></div>
+                {% endfor %}
+            </article>
+
+            <aside class="panel profile-card">
+                <div class="profile-cover"></div>
+                <div class="profile-avatar">{{ member.user.first_name|first|upper }}{{ member.user.last_name|first|upper }}</div>
+                <h2>{{ member.user.get_full_name|default:member.user.username }}</h2>
+                <p>{{ member.membership_number }}</p>
+                <dl><div><dt>Organization</dt><dd>{{ member.organization.name }}</dd></div><div><dt>Mobile</dt><dd>{{ member.phone|default:"Not provided" }}</dd></div><div><dt>Email</dt><dd>{{ member.user.email|default:"Not provided" }}</dd></div></dl>
+            </aside>
+        </section>
+
+        <section class="bottom-grid">
+            <article class="panel" id="contributions">
+                <div class="panel-heading"><div><span>PAYMENT RECORDS</span><h2>Recent contributions</h2></div></div>
+                {% if contributions %}
+                <div class="table-wrap"><table><thead><tr><th>Product</th><th>Due date</th><th>Due</th><th>Paid</th><th>Status</th></tr></thead><tbody>
+                    {% for contribution in contributions %}
+                    <tr><td><strong>{{ contribution.product.name }}</strong></td><td>{{ contribution.due_date|date:"d M Y" }}</td><td>{{ contribution.amount_due }}</td><td>{{ contribution.amount_paid }}</td><td><span class="payment-status {{ contribution.status }}">{{ contribution.get_status_display }}</span></td></tr>
+                    {% endfor %}
+                </tbody></table></div>
+                {% else %}<div class="compact-empty">No contribution records are available.</div>{% endif %}
+            </article>
+
+            <article class="panel" id="notifications">
+                <div class="panel-heading"><div><span>UPDATES</span><h2>Notifications</h2></div></div>
+                {% for notification in notifications %}
+                <div class="notification-row"><span class="notice-dot {% if notification.read_at %}read{% endif %}"></span><div><strong>{{ notification.title }}</strong><p>{{ notification.message }}</p><small>{{ notification.created_at|timesince }} ago</small></div>{% if not notification.read_at %}<form method="post" action="{% url 'notification-read' notification.id %}">{% csrf_token %}<button type="submit" title="Mark as read">✓</button></form>{% endif %}</div>
+                {% empty %}<div class="compact-empty">No notifications yet.</div>{% endfor %}
+            </article>
+        </section>
+
+        <section class="panel support-panel" id="support">
+            <div class="panel-heading"><div><span>MEMBER SUPPORT</span><h2>How can we help?</h2></div></div>
+            <form class="support-form" method="post" action="{% url 'support-ticket' %}">
+                {% csrf_token %}
+                <label><span>Subject</span><input name="subject" maxlength="180" required placeholder="What do you need help with?"></label>
+                <label><span>Request details</span><textarea name="description" required placeholder="Describe the issue so the administrator can help."></textarea></label>
+                <button type="submit">Submit request <span>→</span></button>
+            </form>
+        </section>
+    </main>
+</div>
+</body>
+</html>

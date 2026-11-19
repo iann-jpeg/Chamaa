@@ -8,3 +8,6 @@ Pillow>=11,<12
 openpyxl>=3.1,<4
 qrcode>=8,<9
 gunicorn>=23,<24
+django-mongodb-backend==6.1.*
+django-cors-headers>=4.9,<5
+whitenoise>=6.11,<7

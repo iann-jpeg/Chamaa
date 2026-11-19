@@ -5,8 +5,8 @@ from decimal import Decimal
 from django.contrib.auth.models import User
 from django.test import TestCase
 from core.models import Member, Organization, OrganizationMembership
-from .models import Account
-from .services import post_entry
+from .models import Account, WalletWithdrawal
+from .services import approve_withdrawal, post_entry
 
 
 class LedgerTests(TestCase):
@@ -50,3 +50,25 @@ class LedgerTests(TestCase):
         self.client.force_login(self.user)
         response = self.client.get(f"/api/accounts/{other_account.pk}/")
         self.assertEqual(response.status_code, 404)
+
+    def test_withdrawal_requires_approval_role_and_balance(self):
+        wallet = Account.objects.create(
+            organization=self.organization,
+            member=self.member,
+            name="SMCF-0001 Wallet",
+            kind=Account.Kind.WALLET,
+        )
+        post_entry(account=wallet, reference="DEP-1", description="Deposit", amount="100")
+        withdrawal = WalletWithdrawal.objects.create(
+            organization=self.organization,
+            member=self.member,
+            reference="WD-1",
+            amount=Decimal("75"),
+        )
+        with self.assertRaises(PermissionError):
+            approve_withdrawal(withdrawal, self.user)
+        OrganizationMembership.objects.filter(
+            organization=self.organization, user=self.user
+        ).update(role=OrganizationMembership.Role.TREASURER)
+        approve_withdrawal(withdrawal, self.user)
+        self.assertEqual(withdrawal.status, WalletWithdrawal.Status.APPROVED)

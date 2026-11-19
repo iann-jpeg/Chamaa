@@ -1,0 +1,39 @@
+{% extends "core/base.html" %}
+{% block title %}Create account | CHAMAA{% endblock %}
+{% block panel_title %}One account.<br>Every cycle connected.{% endblock %}
+{% block panel_text %}Create your secure member identity and join the Chama cycles you participate in.{% endblock %}
+{% block content %}
+<div class="auth-header register-header">
+    <span class="auth-kicker">MEMBER REGISTRATION</span>
+    <h2>Create your account</h2>
+    <p>Complete the details below. Fields marked with * are required.</p>
+</div>
+<form class="auth-form register-form" method="post" novalidate>
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="form-errors" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+    <div class="form-grid three">
+        <div><label class="field-label" for="id_first_name">First name *</label>{{ form.first_name }}{% if form.first_name.errors %}<div class="field-error">{{ form.first_name.errors|striptags }}</div>{% endif %}</div>
+        <div><label class="field-label" for="id_last_name">Last name *</label>{{ form.last_name }}{% if form.last_name.errors %}<div class="field-error">{{ form.last_name.errors|striptags }}</div>{% endif %}</div>
+        <div><label class="field-label" for="id_middle_name">Middle name</label>{{ form.middle_name }}</div>
+    </div>
+    <div class="form-grid two">
+        <div><label class="field-label" for="id_username">Username *</label>{{ form.username }}{% if form.username.errors %}<div class="field-error">{{ form.username.errors|striptags }}</div>{% endif %}</div>
+        <div><label class="field-label" for="id_phone">Mobile number *</label>{{ form.phone }}{% if form.phone.errors %}<div class="field-error">{{ form.phone.errors|striptags }}</div>{% endif %}</div>
+    </div>
+    <div><label class="field-label" for="id_email">Email address *</label>{{ form.email }}{% if form.email.errors %}<div class="field-error">{{ form.email.errors|striptags }}</div>{% endif %}</div>
+    <div class="form-grid two">
+        <div><label class="field-label" for="id_password">Password *</label><div class="input-wrap password-wrap">{{ form.password }}<button class="password-toggle" type="button" aria-label="Show password" aria-pressed="false"></button></div>{% if form.password.errors %}<div class="field-error">{{ form.password.errors|striptags }}</div>{% endif %}</div>
+        <div><label class="field-label" for="id_confirm_password">Confirm password *</label><div class="input-wrap password-wrap">{{ form.confirm_password }}<button class="password-toggle" type="button" aria-label="Show password" aria-pressed="false"></button></div>{% if form.confirm_password.errors %}<div class="field-error">{{ form.confirm_password.errors|striptags }}</div>{% endif %}</div>
+    </div>
+    <div class="form-grid two">
+        <div><label class="field-label" for="id_organization">Organization *</label>{{ form.organization }}{% if form.organization.errors %}<div class="field-error">{{ form.organization.errors|striptags }}</div>{% endif %}</div>
+        <div><label class="field-label" for="id_invitation_code">Invitation code</label>{{ form.invitation_code }}{% if form.invitation_code.errors %}<div class="field-error">{{ form.invitation_code.errors|striptags }}</div>{% endif %}</div>
+    </div>
+    <label class="check-row">{{ form.terms_accepted }}<span>I accept the Terms and Conditions *</span></label>
+    {% if form.terms_accepted.errors %}<div class="field-error">{{ form.terms_accepted.errors|striptags }}</div>{% endif %}
+    <label class="check-row">{{ form.privacy_accepted }}<span>I accept the Privacy Policy *</span></label>
+    {% if form.privacy_accepted.errors %}<div class="field-error">{{ form.privacy_accepted.errors|striptags }}</div>{% endif %}
+    <button class="primary-button" type="submit"><span>Create member account</span><span aria-hidden="true">→</span></button>
+</form>
+<p class="auth-switch">Already registered? <a href="{% url 'member-login' %}">Sign in</a></p>
+{% endblock %}

@@ -1,0 +1,37 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}CHAMAA{% endblock %}</title>
+    <meta name="theme-color" content="#142B45">
+    <link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">
+    <link rel="stylesheet" href="{% static 'css/auth.css' %}">
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+<main class="auth-shell">
+    <section class="auth-brand-panel">
+        <a class="brand" href="/" aria-label="CHAMAA home">
+            <span class="brand-mark">C</span>
+            <span>CHAMAA</span>
+        </a>
+        <div class="brand-message">
+            <span class="eyebrow">CHAMA CYCLE MANAGEMENT</span>
+            <h1>{% block panel_title %}Every Contribution. Every Turn. Every Payout. Automated.{% endblock %}</h1>
+            <p>{% block panel_text %}One secure workspace for your members, cycles and contributions.{% endblock %}</p>
+        </div>
+        <div class="brand-proof"><span></span><p><strong>Secure & organized</strong><br>Member records remain isolated by organization.</p></div>
+    </section>
+    <section class="auth-form-panel">
+        <div class="auth-form-wrap">
+            <a class="mobile-brand" href="/" aria-label="CHAMAA home"><span class="brand-mark">C</span><span>CHAMAA</span></a>
+            {% for message in messages %}<div class="auth-message">{{ message }}</div>{% endfor %}
+            {% block content %}{% endblock %}
+        </div>
+    </section>
+</main>
+<script src="{% static 'js/auth.js' %}" defer></script>
+</body>
+</html>

@@ -1,0 +1,41 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+{% block extrastyle %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'css/admin-login.css' %}">
+{% endblock %}
+{% block bodyclass %}login{% endblock %}
+{% block nav-global %}{% endblock %}
+{% block nav-sidebar %}{% endblock %}
+{% block content_title %}{% endblock %}
+{% block breadcrumbs %}{% endblock %}
+{% block content %}
+<div class="admin-login-layout">
+    <section class="admin-login-brand">
+        <div class="brand-lockup"><span>C</span><strong>CHAMAA</strong></div>
+        <div class="brand-copy"><small>ADMINISTRATION</small><h1>Run your organization with clarity.</h1><p>Manage members, financial records and cycle operations from one secure workspace.</p></div>
+        <div class="admin-security"><i></i><div><strong>Protected workspace</strong><span>Organization-sensitive actions require administrator access.</span></div></div>
+    </section>
+    <section class="admin-login-form">
+        <div class="login-card">
+            <span>AUTHORIZED ACCESS</span>
+            <h2>Sign in to administration</h2>
+            {% if form.errors and not form.non_field_errors %}<p class="errornote">{% translate "Please correct the error below." %}</p>{% endif %}
+            {% if form.non_field_errors %}{% for error in form.non_field_errors %}<p class="errornote">{{ error }}</p>{% endfor %}{% endif %}
+            {% if user.is_authenticated %}<p class="errornote">{% blocktranslate trimmed %}You are authenticated as {{ username }}, but are not authorized to access this page.{% endblocktranslate %}</p>{% endif %}
+            <form action="{{ app_path }}" method="post" id="login-form">
+                {% csrf_token %}
+                <label for="id_username">Username or email</label>
+                {{ form.username }}
+                <label for="id_password">Password</label>
+                {{ form.password }}
+                <input type="hidden" name="next" value="{{ next }}">
+                <button type="submit">Sign in securely <b>→</b></button>
+            </form>
+            {% url 'admin_password_reset' as password_reset_url %}
+            {% if password_reset_url %}<div class="password-reset-link"><a href="{{ password_reset_url }}">Forgot your password?</a></div>{% endif %}
+            <a class="back-link" href="/">← Back to CHAMAA</a>
+        </div>
+    </section>
+</div>
+{% endblock %}

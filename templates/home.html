@@ -1,0 +1,309 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>CHAMAA | Automated Chama Cycle Management</title>
+    <meta name="description" content="Manage members, contributions, payout positions and Chama cycles in one transparent, secure platform.">
+    <meta name="theme-color" content="#142B45">
+    <meta property="og:title" content="CHAMAA | Automated Chama Cycle Management">
+    <meta property="og:description" content="Every Contribution. Every Turn. Every Payout. Automated.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ request.build_absolute_uri }}">
+    <link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">
+    <link rel="stylesheet" href="{% static 'css/landing.css' %}">
+    <script src="{% static 'js/landing.js' %}" defer></script>
+</head>
+<body>
+<a class="skip-link" href="#main-content">Skip to content</a>
+<header class="site-header" id="top">
+    <nav class="nav container" aria-label="Primary navigation">
+        <a class="brand" href="/" aria-label="CHAMAA home">
+            <span class="brand-mark" aria-hidden="true">C</span>
+            <span>CHAMAA</span>
+        </a>
+        <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-menu" aria-label="Open menu">
+            <span></span><span></span><span></span>
+        </button>
+        <div class="nav-menu" id="nav-menu">
+            <div class="nav-links">
+                <a class="active" href="#top">Home</a>
+                <a href="#how-it-works">How It Works</a>
+                <a href="#features">Features</a>
+                <a href="#for-chamas">For Chamas</a>
+                <a href="#about">About Us</a>
+                <a href="#contact">Contact</a>
+            </div>
+            <div class="nav-actions">
+                <a class="button button-ghost" href="{% url 'member-login' %}">Login</a>
+                <a class="button button-gold" href="{% url 'member-register' %}">Get Started</a>
+            </div>
+        </div>
+    </nav>
+</header>
+
+<main id="main-content">
+    <section class="hero">
+        <div class="hero-orbit orbit-one"></div>
+        <div class="hero-orbit orbit-two"></div>
+        <div class="container hero-grid">
+            <div class="hero-copy reveal">
+                <span class="eyebrow"><span></span> Chama cycle management</span>
+                <h1>Your Chama. Your Cycle. <em>Completely Automated.</em></h1>
+                <p>Manage members, organize contributions, track payout positions and run your Chama cycles from one simple, secure platform.</p>
+                <div class="hero-actions">
+                    <a class="button button-gold button-large" href="{% url 'member-register' %}">Get Started <span aria-hidden="true">→</span></a>
+                    <a class="button button-outline-light button-large" href="#how-it-works">Explore How It Works</a>
+                </div>
+                <div class="hero-proof">
+                    <span class="proof-dot"></span>
+                    Built for clear records and transparent cycle administration
+                </div>
+            </div>
+
+            <div class="dashboard-shell reveal" aria-label="Illustrative CHAMAA dashboard preview">
+                <div class="mock-window">
+                    <div class="mock-topbar">
+                        <div class="mock-brand"><span>C</span> CHAMAA</div>
+                        <div class="mock-avatar" aria-hidden="true">SM</div>
+                    </div>
+                    <div class="mock-layout">
+                        <aside class="mock-sidebar" aria-hidden="true">
+                            <span class="selected">⌂</span><span>◎</span><span>◫</span><span>↗</span><span>◷</span>
+                        </aside>
+                        <div class="mock-content">
+                            <div class="mock-heading"><div><small>Organization overview</small><strong>Good morning, Admin</strong></div><span>Sample data</span></div>
+                            <div class="metric-grid">
+                                <article><small>Active cycles</small><strong>3</strong><span class="trend">Live</span></article>
+                                <article><small>Participants</small><strong>86</strong><span>Across cycles</span></article>
+                                <article><small>Collected</small><strong>KES 48.2K</strong><span>This month</span></article>
+                            </div>
+                            <div class="mock-panels">
+                                <article class="cycle-panel">
+                                    <div class="panel-title"><strong>Cycle progress</strong><small>Sample cycle</small></div>
+                                    <div class="cycle-name"><span>Weekly Growth</span><b>68%</b></div>
+                                    <div class="progress"><span style="width:68%"></span></div>
+                                    <div class="cycle-stats"><div><small>Contributors</small><strong>24 / 30</strong></div><div><small>Next payout</small><strong>28 Nov</strong></div></div>
+                                </article>
+                                <article class="payout-panel">
+                                    <div class="panel-title"><strong>Upcoming payout</strong><small>Pending approval</small></div>
+                                    <div class="payout-person"><span>JN</span><div><strong>Jane N.</strong><small>Position #18</small></div></div>
+                                    <div class="payout-amount"><small>Scheduled amount</small><strong>KES 6,400</strong></div>
+                                </article>
+                            </div>
+                            <div class="activity-panel">
+                                <div class="panel-title"><strong>Recent activity</strong><small>Illustrative</small></div>
+                                <div class="activity-row"><span class="activity-icon">✓</span><div><strong>Contribution confirmed</strong><small>Position 12 · Just now</small></div><b>+KES 214</b></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="trust-strip" aria-label="CHAMAA capabilities">
+        <div class="container">
+            <p>Everything your Chama needs to run smoothly.</p>
+            <div class="trust-grid">
+                <span><b>01</b> Member Management</span>
+                <span><b>02</b> Automated Contributions</span>
+                <span><b>03</b> Payout Tracking</span>
+                <span><b>04</b> Cycle Monitoring</span>
+                <span><b>05</b> Digital Receipts</span>
+                <span><b>06</b> Notifications</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="section" id="for-chamas">
+        <div class="container problem-grid">
+            <div class="section-copy reveal">
+                <span class="section-label">THE CHALLENGE</span>
+                <h2>Move Beyond Manual Chama Management.</h2>
+                <p>Spreadsheets and scattered messages make it harder to maintain accurate records and keep every participant informed.</p>
+                <div class="challenge-list">
+                    <div><span>01</span> Manual contribution tracking</div>
+                    <div><span>02</span> Confusion over payout order</div>
+                    <div><span>03</span> Missing payment records</div>
+                    <div><span>04</span> Difficult member coordination</div>
+                </div>
+            </div>
+            <div class="comparison reveal" aria-label="Manual management versus CHAMAA">
+                <article class="comparison-card before">
+                    <small>BEFORE</small>
+                    <h3>Disconnected processes</h3>
+                    <ul>
+                        <li>Spreadsheets and phone records</li>
+                        <li>Delayed member confirmations</li>
+                        <li>Unclear payout positions</li>
+                        <li>Time-consuming reporting</li>
+                    </ul>
+                </article>
+                <article class="comparison-card after">
+                    <small>WITH CHAMAA</small>
+                    <h3>One connected workspace</h3>
+                    <ul>
+                        <li>Centralized member accounts</li>
+                        <li>Tracked contribution records</li>
+                        <li>Visible payout schedules</li>
+                        <li>Organized cycle reporting</li>
+                    </ul>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <section class="section process-section" id="how-it-works">
+        <div class="container">
+            <div class="section-heading centered reveal">
+                <span class="section-label">HOW IT WORKS</span>
+                <h2>From Registration to Payout.<br>One Seamless Process.</h2>
+            </div>
+            <div class="process-list">
+                <article class="process-step reveal"><span>01</span><div class="step-icon">◎</div><h3>Create Your Chama</h3><p>Set up your organization and configure your cycle rules.</p></article>
+                <article class="process-step reveal"><span>02</span><div class="step-icon">♙</div><h3>Invite Members</h3><p>Register participants and organize membership.</p></article>
+                <article class="process-step reveal"><span>03</span><div class="step-icon">#</div><h3>Select Positions</h3><p>Let participants select available payout numbers.</p></article>
+                <article class="process-step reveal"><span>04</span><div class="step-icon">✓</div><h3>Collect Contributions</h3><p>Track payments, verify transactions and generate receipts.</p></article>
+                <article class="process-step reveal"><span>05</span><div class="step-icon">↗</div><h3>Manage Payouts</h3><p>Monitor payout schedules, approvals and completion.</p></article>
+            </div>
+        </div>
+    </section>
+
+    <section class="section" id="features">
+        <div class="container">
+            <div class="section-heading reveal">
+                <span class="section-label">PLATFORM FEATURES</span>
+                <h2>Everything Connected. Nothing Complicated.</h2>
+            </div>
+            <div class="feature-grid">
+                <article><span class="feature-icon">♙</span><h3>Member Management</h3><p>Unique member identities, profiles and organization-level records.</p></article>
+                <article><span class="feature-icon">◎</span><h3>Multiple Chama Cycles</h3><p>Manage independent cycles with configurable rules and schedules.</p></article>
+                <article><span class="feature-icon">#</span><h3>Participant Number Selection</h3><p>Organize participant positions within each cycle.</p></article>
+                <article><span class="feature-icon">↗</span><h3>Contribution Tracking</h3><p>Record dues, payments and outstanding contribution balances.</p></article>
+                <article><span class="feature-icon">M</span><h3>M-PESA Integration</h3><p>Modular payment verification and simulated gateway support.</p></article>
+                <article><span class="feature-icon">▤</span><h3>Automated Receipts</h3><p>Generate transaction references and receivable records.</p></article>
+                <article><span class="feature-icon">◷</span><h3>Payout Scheduling</h3><p>Keep scheduled payouts, approvals and statuses organized.</p></article>
+                <article><span class="feature-icon">◉</span><h3>Member Notifications</h3><p>Keep participants informed through configurable notifications.</p></article>
+                <article><span class="feature-icon">≡</span><h3>Cycle Statements</h3><p>Provide clear participation and cycle histories.</p></article>
+                <article><span class="feature-icon">✓</span><h3>Financial Reconciliation</h3><p>Compare and organize financial records for review.</p></article>
+                <article><span class="feature-icon">▥</span><h3>Cycle Reports</h3><p>Review participant, contribution and payout information.</p></article>
+                <article><span class="feature-icon">⌘</span><h3>Administrative Controls</h3><p>Protect sensitive actions with organization roles and permissions.</p></article>
+            </div>
+        </div>
+    </section>
+
+    <section class="section showcase-section" id="about">
+        <div class="container showcase-grid">
+            <div class="showcase-copy reveal">
+                <span class="section-label light">ACTUAL PLATFORM EXPERIENCE</span>
+                <h2>A Clear View of Every Cycle.</h2>
+                <p>See organizational activity, cycle progress and member records in a connected workspace.</p>
+                <ul>
+                    <li>Organization overview</li>
+                    <li>Active cycle cards</li>
+                    <li>Participant and transaction records</li>
+                    <li>Payout schedules and approval states</li>
+                </ul>
+            </div>
+            <div class="showcase-mock reveal" aria-label="CHAMAA dashboard interface mockup">
+                <div class="showcase-bar"><div><i></i><i></i><i></i></div><span>CHAMAA Workspace</span></div>
+                <div class="showcase-body">
+                    <aside><b>C</b><span>▦</span><span>♙</span><span>◎</span><span>↗</span></aside>
+                    <div class="showcase-main">
+                        <div class="showcase-title"><div><small>SMCF</small><strong>Cycle overview</strong></div><button type="button" tabindex="-1">+ New cycle</button></div>
+                        <div class="showcase-cards"><article><small>Collected</small><strong>KES 48,200</strong><div class="mini-bars"><i></i><i></i><i></i><i></i><i></i></div></article><article><small>Active members</small><strong>86</strong><span>Across 3 cycles</span></article></div>
+                        <div class="showcase-table">
+                            <div class="table-head"><strong>Participant activity</strong><small>Sample preview</small></div>
+                            <div class="table-row"><span>JN</span><b>Jane N.</b><small>Position 18</small><em>Paid</em></div>
+                            <div class="table-row"><span>AM</span><b>Ali M.</b><small>Position 19</small><em>Paid</em></div>
+                            <div class="table-row"><span>RO</span><b>Rose O.</b><small>Position 20</small><em>Pending</em></div>
+                        </div>
+                    </div>
+                </div>
+                <span class="sample-label">Illustrative interface · sample data</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="section member-section">
+        <div class="container member-grid">
+            <div class="member-visual reveal" aria-label="Member account preview">
+                <div class="phone-card">
+                    <div class="phone-head"><span>CHAMAA</span><b>AN</b></div>
+                    <small>WELCOME BACK</small>
+                    <h3>Amina N.</h3>
+                    <div class="member-cycle"><div><span>Weekly Growth</span><small>Participant #12</small></div><b>Active</b></div>
+                    <div class="member-stat"><span>Contributions paid</span><strong>KES 4,280</strong></div>
+                    <div class="member-stat"><span>Next deadline</span><strong>24 Nov</strong></div>
+                    <div class="member-position"><small>Payout position</small><strong>#12</strong></div>
+                </div>
+            </div>
+            <div class="section-copy reveal">
+                <span class="section-label">MEMBER EXPERIENCE</span>
+                <h2>Every Member Knows Where They Stand.</h2>
+                <p>Each member uses one secure account across all their organization's cycles.</p>
+                <div class="member-benefits">
+                    <div><b>✓</b><span><strong>Personal dashboard</strong><small>View cycle status and account details</small></span></div>
+                    <div><b>✓</b><span><strong>Contribution history</strong><small>Review payments and upcoming deadlines</small></span></div>
+                    <div><b>✓</b><span><strong>Payout and receipt access</strong><small>Track positions and downloadable records</small></span></div>
+                    <div><b>✓</b><span><strong>Relevant notifications</strong><small>Receive updates about account and cycle activity</small></span></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section benefits-section" id="contact">
+        <div class="container">
+            <div class="section-heading centered reveal"><span class="section-label">WHY CHAMAA</span><h2>Built for Chamas That Want to Grow.</h2></div>
+            <div class="benefit-row">
+                <article><span>01</span><h3>Better organization</h3></article>
+                <article><span>02</span><h3>Greater transparency</h3></article>
+                <article><span>03</span><h3>Less administration</h3></article>
+                <article><span>04</span><h3>Accurate records</h3></article>
+                <article><span>05</span><h3>Clear schedules</h3></article>
+                <article><span>06</span><h3>Better communication</h3></article>
+            </div>
+        </div>
+    </section>
+
+    <section class="cta-section">
+        <div class="container cta-inner">
+            <div><span class="section-label light">START WITH CHAMAA</span><h2>Ready to Run Your Chama Better?</h2><p>Bring your members, contributions and payout schedules together with CHAMAA.</p></div>
+            <div class="cta-actions"><a class="button button-gold button-large" href="{% url 'member-register' %}">Create Your Chama</a><a class="button button-outline-light button-large" href="{% url 'member-login' %}">Sign In</a></div>
+        </div>
+    </section>
+
+    <section class="section faq-section">
+        <div class="container faq-grid">
+            <div><span class="section-label">FAQ</span><h2>Questions, Answered.</h2><p>Learn how CHAMAA supports organized, transparent chama administration.</p></div>
+            <div class="accordion">
+                <details><summary>What is CHAMAA?</summary><p>CHAMAA is a platform for organizing Chama members, cycles, contributions and payout schedules in one connected workspace.</p></details>
+                <details><summary>Who can use the platform?</summary><p>Community finance groups and investment clubs can use CHAMAA with organization-specific member accounts and roles.</p></details>
+                <details><summary>Can one organization manage multiple cycles?</summary><p>Yes. The platform supports independent cycles under one organization while keeping their records separate.</p></details>
+                <details><summary>Can members join multiple cycles?</summary><p>Yes. One member account can participate in multiple cycles within an organization.</p></details>
+                <details><summary>How do participants select payout numbers?</summary><p>Available participant positions are managed according to cycle rules and the applicable selection deadline.</p></details>
+                <details><summary>Does CHAMAA support M-PESA?</summary><p>The platform includes a modular payment architecture for M-PESA and simulated provider integrations.</p></details>
+                <details><summary>Can members view their contribution history?</summary><p>Yes. Authorized members can review their records and access relevant receipts and statements.</p></details>
+                <details><summary>How are payouts tracked?</summary><p>Payout positions, schedules, approval states and completion records are maintained in the cycle workspace.</p></details>
+                <details><summary>Is CHAMAA accessible on mobile?</summary><p>Yes. The member portal and landing experience use responsive layouts for phones, tablets and desktop devices.</p></details>
+                <details><summary>How do I register my organization?</summary><p>Create a member account, then use the organization registration or invitation flow available to authorized administrators.</p></details>
+            </div>
+        </div>
+    </section>
+</main>
+
+<footer class="footer">
+    <div class="container footer-grid">
+        <div class="footer-brand"><a class="brand" href="#top"><span class="brand-mark">C</span><span>CHAMAA</span></a><p>Every Contribution. Every Turn. Every Payout. Automated.</p></div>
+        <div><strong>Platform</strong><a href="#how-it-works">How It Works</a><a href="#features">Features</a><a href="#for-chamas">For Chamas</a></div>
+        <div><strong>Company</strong><a href="#about">About Us</a><a href="#contact">Contact</a></div>
+        <div><strong>Account</strong><a href="{% url 'member-login' %}">Member Login</a><a href="{% url 'member-register' %}">Member Register</a><a href="{% url 'my-administration-workspace' %}">Administration Login</a><a href="/admin/login/">Django Admin</a></div>
+        <div><strong>Administration</strong><a href="{% url 'platform-dashboard' %}">Super Admin</a><a href="{% url 'my-administration-workspace' %}">Organization Admin</a><a href="/admin/">Data Console</a></div>
+        <div><strong>Legal</strong><a href="/privacy/">Privacy Policy</a><a href="/terms/">Terms and Conditions</a></div>
+    </div>
+    <div class="container footer-bottom"><span>© {% now "Y" %} CHAMAA. All rights reserved.</span><span>Secure Chama operations</span></div>
+</footer>
+</body>
+</html>

@@ -90,3 +90,62 @@ class Contribution(models.Model):
         self.amount_paid += amount
         self.status = self.Status.PAID if self.amount_paid == self.amount_due else self.Status.PARTIAL
         self.save(update_fields=["amount_paid", "status"])
+
+
+class Cycle(models.Model):
+    class Status(models.TextChoices):
+        DRAFT = "draft", "Draft"
+        RECRUITING = "recruiting", "Recruiting"
+        ACTIVE = "active", "Active"
+        COMPLETED = "completed", "Completed"
+        SUSPENDED = "suspended", "Suspended"
+
+    organization = models.ForeignKey(Organization, on_delete=models.PROTECT)
+    name = models.CharField(max_length=160)
+    reference = models.CharField(max_length=40)
+    contribution_amount = models.DecimalField(max_digits=18, decimal_places=2, validators=[MinValueValidator(Decimal("0.01"))])
+    frequency = models.CharField(max_length=20, default="weekly")
+    target_participants = models.PositiveIntegerField(validators=[MinValueValidator(2)])
+    payout_amount = models.DecimalField(max_digits=18, decimal_places=2, validators=[MinValueValidator(Decimal("0.01"))])
+    starts_on = models.DateField(null=True, blank=True)
+    ends_on = models.DateField(null=True, blank=True)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["organization", "reference"], name="unique_cycle_reference")
+        ]
+
+
+class CycleParticipant(models.Model):
+    cycle = models.ForeignKey(Cycle, related_name="participants", on_delete=models.PROTECT)
+    member = models.ForeignKey(Member, on_delete=models.PROTECT)
+    number = models.PositiveIntegerField()
+    joined_at = models.DateTimeField(auto_now_add=True)
+    is_eligible = models.BooleanField(default=False)
+    has_received_payout = models.BooleanField(default=False)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["cycle", "member"], name="unique_cycle_member"),
+            models.UniqueConstraint(fields=["cycle", "number"], name="unique_cycle_number"),
+        ]
+
+
+class WalletWithdrawal(models.Model):
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending approval"
+        APPROVED = "approved", "Approved"
+        REJECTED = "rejected", "Rejected"
+        SETTLED = "settled", "Settled"
+
+    organization = models.ForeignKey(Organization, on_delete=models.PROTECT)
+    member = models.ForeignKey(Member, on_delete=models.PROTECT)
+    reference = models.CharField(max_length=80, unique=True)
+    amount = models.DecimalField(max_digits=18, decimal_places=2, validators=[MinValueValidator(Decimal("0.01"))])
+    fee = models.DecimalField(max_digits=18, decimal_places=2, default=Decimal("0"))
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
+    requested_at = models.DateTimeField(auto_now_add=True)
+    approved_at = models.DateTimeField(null=True, blank=True)
+    settled_at = models.DateTimeField(null=True, blank=True)
+    rejection_reason = models.CharField(max_length=240, blank=True)
