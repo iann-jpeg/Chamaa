@@ -110,7 +110,7 @@ class MemberAuthenticationForm(AuthenticationForm):
         identifier = self.cleaned_data.get("username")
         password = self.cleaned_data.get("password")
         User = get_user_model()
-        user = User.objects.filter(email__iexact=identifier).first()
+        user = User.objects.filter(email=identifier.lower()).first()
         if not user:
             member = Member.objects.filter(phone=identifier).select_related("user").first()
             user = member.user if member else None

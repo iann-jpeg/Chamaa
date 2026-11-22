@@ -25,6 +25,7 @@ SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "django-insecure-development-on
 
 LOGIN_URL = "/account/login/"
 LOGIN_REDIRECT_URL = "/account/dashboard/"
+SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get("DJANGO_DEBUG", "false").lower() in {"1", "true", "yes"}

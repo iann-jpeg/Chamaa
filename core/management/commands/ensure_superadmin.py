@@ -15,13 +15,13 @@ class Command(BaseCommand):
 
         if username and password:
             User = get_user_model()
-            user, created = User.objects.get_or_create(
-                username__iexact=username,
-                defaults={
-                    "username": username,
-                    "email": email,
-                },
-            )
+            user = User.objects.filter(username=username).first()
+            created = user is None
+            if user is None:
+                user = User(
+                    username=username,
+                    email=email,
+                )
             user.username = username
             user.email = email or user.email
             user.is_superuser = True
@@ -39,17 +39,21 @@ class Command(BaseCommand):
                 "Super-admin bootstrap skipped: username or password environment variable is missing."
             )
 
-        organization, organization_created = Organization.objects.get_or_create(
-            slug="smart-moves-community-finance",
-            defaults={
-                "name": "SMART MOVES COMMUNITY FINANCE",
-                "status": "active",
-                "is_active": True,
-                "allow_public_registration": True,
-                "require_admin_approval": True,
-                "country": "Kenya",
-            },
-        )
+        organization = Organization.objects.filter(
+            slug="smart-moves-community-finance"
+        ).first()
+        organization_created = organization is None
+        if organization is None:
+            organization = Organization(
+                slug="smart-moves-community-finance",
+                name="SMART MOVES COMMUNITY FINANCE",
+                status="active",
+                is_active=True,
+                allow_public_registration=True,
+                require_admin_approval=True,
+                country="Kenya",
+            )
+            organization.save()
         if not organization.is_active or organization.status != "active":
             organization.is_active = True
             organization.status = "active"
