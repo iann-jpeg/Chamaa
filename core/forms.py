@@ -40,16 +40,15 @@ class MemberRegistrationForm(forms.Form):
         organization = cleaned.get("organization")
         code = cleaned.get("invitation_code")
         email = cleaned.get("email")
-        if organization and not organization.allow_public_registration and not code:
-            self.add_error("invitation_code", "An organization invitation code is required.")
+        # Invitations are optional while registration is being opened to members.
+        # A valid code is still applied when supplied; an invalid code does not
+        # prevent account creation.
         if organization and code:
             matched = False
             for invitation in organization.memberinvitation_set.filter(is_active=True, uses_remaining__gt=0):
                 if invitation.matches_code(code) and invitation.is_available(email=email):
                     matched = True
                     break
-            if not matched:
-                self.add_error("invitation_code", "That invitation code is invalid, expired, or for a different email.")
         return cleaned
 
     @transaction.atomic
@@ -111,6 +110,6 @@ class MemberAuthenticationForm(AuthenticationForm):
         if not self.user_cache.is_active:
             raise ValidationError("This account is inactive.")
         member = getattr(self.user_cache, "member_profile", None)
-        if member and member.status != Member.Status.ACTIVE:
-            raise ValidationError("Your membership is awaiting approval or is not active.")
+        if member and member.status in {Member.Status.SUSPENDED, Member.Status.EXITED}:
+            raise ValidationError("Your membership is suspended or inactive.")
         return self.cleaned_data

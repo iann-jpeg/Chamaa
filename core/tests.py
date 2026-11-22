@@ -67,7 +67,7 @@ class MemberAccountTests(TestCase):
         self.assertFalse(invitation.is_active)
         self.assertEqual(invitation.uses_remaining, 0)
 
-    def test_invitation_code_rejects_wrong_email(self):
+    def test_invitation_code_is_optional_for_wrong_email(self):
         invitation = MemberInvitation.objects.create(
             organization=self.organization,
             email="invited@example.com",
@@ -84,10 +84,12 @@ class MemberAccountTests(TestCase):
             "organization": self.organization.pk, "invitation_code": "SMART2026",
             "terms_accepted": "on", "privacy_accepted": "on",
         })
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "different email")
+        self.assertRedirects(response, "/account/login/")
+        invitation.refresh_from_db()
+        self.assertTrue(invitation.is_active)
+        self.assertEqual(invitation.uses_remaining, 1)
 
-    def test_invitation_code_rejects_expired_code(self):
+    def test_invitation_code_is_optional_for_expired_code(self):
         invitation = MemberInvitation.objects.create(
             organization=self.organization,
             expires_at=timezone.now() - timedelta(minutes=1),
@@ -104,8 +106,29 @@ class MemberAccountTests(TestCase):
             "organization": self.organization.pk, "invitation_code": "SMART2026",
             "terms_accepted": "on", "privacy_accepted": "on",
         })
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "invalid, expired")
+        self.assertRedirects(response, "/account/login/")
+        invitation.refresh_from_db()
+        self.assertTrue(invitation.is_active)
+        self.assertEqual(invitation.uses_remaining, 1)
+
+    def test_pending_member_can_log_in_before_approval(self):
+        user = User.objects.create_user(
+            username="pending-member",
+            email="pending@example.com",
+            password="Strong-password-123",
+        )
+        Member.objects.create(
+            organization=self.organization,
+            user=user,
+            membership_number="SMCF-PENDING",
+            status=Member.Status.PENDING,
+        )
+
+        response = self.client.post("/account/login/", {
+            "username": "pending@example.com",
+            "password": "Strong-password-123",
+        })
+        self.assertRedirects(response, "/account/dashboard/")
 
     def test_member_can_login_by_email_and_submit_support_ticket(self):
         user = User.objects.create_user(
@@ -119,7 +142,7 @@ class MemberAccountTests(TestCase):
         login_response = self.client.post("/account/login/", {
             "username": "amina@example.com", "password": "Strong-password-123",
         })
-        self.assertEqual(login_response.status_code, 200)
+        self.assertRedirects(login_response, "/account/dashboard/")
         member.status = Member.Status.ACTIVE
         member.save(update_fields=["status"])
         self.client.post("/account/login/", {
