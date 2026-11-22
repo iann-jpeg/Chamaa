@@ -13,6 +13,12 @@ import string
 from core.models import Member, MemberInvitation, Organization, OrganizationMembership
 from finance.models import Cycle, LedgerEntry, WalletWithdrawal
 from .models import AdministrativeAuditLog, ApprovalRequest, PlatformAnnouncement
+from core.forms import MemberAuthenticationForm
+
+
+def administration_login(request):
+    from core.views import MemberLoginView
+    return MemberLoginView.as_view(template_name="core/login.html")(request)
 
 
 def super_admin_required(view):
@@ -41,6 +47,10 @@ def audit(request, action, organization=None, target_type="", target_id="", befo
 @super_admin_required
 def platform_dashboard(request):
     organizations = Organization.objects.all()
+    assigned_admin_ids = OrganizationMembership.objects.filter(
+        role=OrganizationMembership.Role.ADMIN,
+        is_active=True,
+    ).values_list("user_id", flat=True)
     context = {
         "organizations": organizations.order_by("-created_at")[:8],
         "total_organizations": organizations.count(),
@@ -58,6 +68,13 @@ def platform_dashboard(request):
         "open_support": 0,
         "audit_logs": AdministrativeAuditLog.objects.select_related("actor", "organization")[:12],
         "announcements": PlatformAnnouncement.objects.filter(is_active=True).order_by("-created_at")[:5],
+        "organization_admins": OrganizationMembership.objects.filter(
+            role=OrganizationMembership.Role.ADMIN,
+            is_active=True,
+        ).select_related("organization", "user").order_by("organization__name", "user__username"),
+        "assignable_users": User.objects.filter(is_active=True).exclude(
+            id__in=assigned_admin_ids
+        ).order_by("username"),
     }
     return render(request, "administration/platform_dashboard.html", context)
 
@@ -115,6 +132,71 @@ def platform_announcement(request):
     if title and message:
         announcement = PlatformAnnouncement.objects.create(title=title, message=message, created_by=request.user)
         audit(request, "platform_announcement_created", target_type="platform_announcement", target_id=str(announcement.pk), after={"title": title})
+    return redirect("platform-dashboard")
+
+
+@super_admin_required
+@require_POST
+@transaction.atomic
+def platform_assign_organization_admin(request):
+    organization_id = request.POST.get("organization")
+    user_id = request.POST.get("user")
+    organization = get_object_or_404(Organization, pk=organization_id)
+    user = get_object_or_404(User, pk=user_id, is_active=True)
+    if user.is_superuser:
+        raise PermissionDenied("Super admins cannot be assigned as organization administrators.")
+
+    membership, created = OrganizationMembership.objects.update_or_create(
+        organization=organization,
+        user=user,
+        defaults={"role": OrganizationMembership.Role.ADMIN, "is_active": True},
+    )
+    user.is_staff = True
+    user.save(update_fields=["is_staff"])
+    audit(
+        request,
+        "organization_admin_assigned",
+        organization,
+        "organization_membership",
+        str(membership.pk),
+        after={"username": user.username, "role": "admin"},
+    )
+    from django.contrib import messages
+    messages.success(request, f"{user.username} is now an administrator for {organization.name}.")
+    return redirect("platform-dashboard")
+
+
+@super_admin_required
+@require_POST
+@transaction.atomic
+def platform_remove_organization_admin(request, membership_id):
+    membership = get_object_or_404(
+        OrganizationMembership,
+        pk=membership_id,
+        role=OrganizationMembership.Role.ADMIN,
+    )
+    organization = membership.organization
+    before = {"is_active": membership.is_active, "role": membership.role}
+    membership.is_active = False
+    membership.save(update_fields=["is_active"])
+    if not OrganizationMembership.objects.filter(
+        user=membership.user,
+        is_active=True,
+        role=OrganizationMembership.Role.ADMIN,
+    ).exists():
+        membership.user.is_staff = False
+        membership.user.save(update_fields=["is_staff"])
+    audit(
+        request,
+        "organization_admin_removed",
+        organization,
+        "organization_membership",
+        str(membership.pk),
+        before=before,
+        after={"is_active": False},
+    )
+    from django.contrib import messages
+    messages.success(request, f"{membership.user.username} was removed from {organization.name}.")
     return redirect("platform-dashboard")
 
 

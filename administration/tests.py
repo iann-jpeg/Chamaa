@@ -46,3 +46,25 @@ class AdministrationSecurityTests(TestCase):
             f"/administration/platform/organizations/{self.organization_a.pk}/",
             fetch_redirect_response=False,
         )
+
+    def test_super_admin_login_redirects_to_platform(self):
+        response = self.client.post("/account/login/", {
+            "username": "platform-owner",
+            "password": "Strong-password-123",
+        })
+        self.assertRedirects(
+            response,
+            "/administration/platform/",
+            fetch_redirect_response=False,
+        )
+
+    def test_organization_admin_login_redirects_to_assigned_organization(self):
+        response = self.client.post("/account/login/", {
+            "username": "admin-a",
+            "password": "Strong-password-123",
+        })
+        self.assertRedirects(
+            response,
+            f"/administration/organization/{self.organization_a.pk}/",
+            fetch_redirect_response=False,
+        )

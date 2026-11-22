@@ -10,5 +10,19 @@
 <section class="admin-grid"><article class="admin-panel" id="organizations"><div class="panel-head"><div><small>PLATFORM</small><h2>Organizations</h2></div></div>
 <div class="table-scroll"><table><thead><tr><th>Organization</th><th>Status</th><th>Members</th><th>Created</th><th></th></tr></thead><tbody>{% for organization in organizations %}<tr><td><strong>{{ organization.name }}</strong><small>{{ organization.slug }}</small></td><td><span class="status {{ organization.status }}">{{ organization.get_status_display }}</span></td><td>{{ organization.member_set.count }}</td><td>{{ organization.created_at|date:"d M Y" }}</td><td><a class="row-action" href="{% url 'platform-organization-detail' organization.pk %}">Manage</a></td></tr>{% empty %}<tr><td colspan="5">No organizations registered.</td></tr>{% endfor %}</tbody></table></div></article>
 <article class="admin-panel" id="announcements"><div class="panel-head"><div><small>BROADCAST</small><h2>Platform announcement</h2></div></div><form class="announcement-form" method="post" action="{% url 'platform-announcement' %}">{% csrf_token %}<input name="title" required maxlength="180" placeholder="Announcement title"><textarea name="message" required placeholder="Message for all organizations"></textarea><button type="submit">Publish announcement</button></form></article></section>
+<section class="admin-panel" id="platform-admins">
+<div class="panel-head"><div><small>ACCESS CONTROL</small><h2>Organization administrators</h2></div></div>
+{% if messages %}<div class="admin-messages">{% for message in messages %}<div class="{{ message.tags }}">{{ message }}</div>{% endfor %}</div>{% endif %}
+<form class="announcement-form" method="post" action="{% url 'platform-organization-admin-assign' %}">
+{% csrf_token %}
+<select name="organization" required><option value="">Select organization</option>{% for organization in organizations %}<option value="{{ organization.pk }}">{{ organization.name }}</option>{% endfor %}</select>
+<select name="user" required><option value="">Select user</option>{% for user in assignable_users %}<option value="{{ user.pk }}">{{ user.username }}{% if user.email %} — {{ user.email }}{% endif %}</option>{% endfor %}</select>
+<button type="submit">Assign organization admin</button>
+</form>
+<div class="table-scroll"><table><thead><tr><th>Administrator</th><th>Organization</th><th>Action</th></tr></thead><tbody>
+{% for membership in organization_admins %}<tr><td><strong>{{ membership.user.get_full_name|default:membership.user.username }}</strong><small>{{ membership.user.username }}</small></td><td>{{ membership.organization.name }}</td><td><form method="post" action="{% url 'platform-organization-admin-remove' membership.pk %}">{% csrf_token %}<button type="submit">Remove</button></form></td></tr>
+{% empty %}<tr><td colspan="3">No organization administrators assigned.</td></tr>{% endfor %}
+</tbody></table></div>
+</section>
 <section class="admin-panel activity-panel" id="activity"><div class="panel-head"><div><small>IMMUTABLE HISTORY</small><h2>Administrative activity</h2></div></div>{% for log in audit_logs %}<div class="activity-row"><span>{{ log.actor.username|first|upper|default:"S" }}</span><div><strong>{{ log.action|capfirst }}</strong><small>{{ log.organization.name|default:"Platform" }} · {{ log.created_at|timesince }} ago</small></div></div>{% empty %}<div class="empty-state">No administrative activity recorded.</div>{% endfor %}</section>
 </main></div></body></html>

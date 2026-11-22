@@ -12,6 +12,20 @@ class MemberLoginView(LoginView):
     authentication_form = MemberAuthenticationForm
     template_name = "core/login.html"
 
+    def get_success_url(self):
+        user = self.request.user
+        if user.is_superuser:
+            return "/administration/platform/"
+        membership = getattr(user, "organizationmembership_set", None)
+        if membership is not None:
+            organization_admin = membership.filter(
+                is_active=True,
+                role="admin",
+            ).select_related("organization").first()
+            if organization_admin:
+                return f"/administration/organization/{organization_admin.organization_id}/"
+        return super().get_success_url()
+
     def form_valid(self, form):
         response = super().form_valid(form)
         if self.request.POST.get("remember") != "on":
