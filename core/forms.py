@@ -2,7 +2,6 @@ from django import forms
 from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.forms import AuthenticationForm, PasswordResetForm
 from django.core.exceptions import ValidationError
-from django.db import DatabaseError
 from django.utils import timezone
 import logging
 import secrets
@@ -113,6 +112,12 @@ class MemberRegistrationForm(forms.Form):
                     matched_invitation.save(update_fields=["uses_remaining", "is_active"])
         except Exception:
             if user is not None:
+                from .models import OrganizationMembership, MemberNotificationPreference
+                member = Member.objects.filter(user=user).first()
+                if member is not None:
+                    MemberNotificationPreference.objects.filter(member=member).delete()
+                    member.delete()
+                OrganizationMembership.objects.filter(user=user).delete()
                 get_user_model().objects.filter(pk=user.pk).delete()
             raise
         return member
@@ -132,7 +137,7 @@ class MemberAuthenticationForm(AuthenticationForm):
                 user = member.user if member else None
             username = user.username if user else identifier
             self.user_cache = authenticate(self.request, username=username, password=password)
-        except DatabaseError as exc:
+        except Exception as exc:
             logger.exception("Authentication database lookup failed")
             raise ValidationError("Sign-in is temporarily unavailable. Please try again.") from exc
         if self.user_cache is None:
