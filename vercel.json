@@ -1,0 +1,9 @@
+{
+  "framework": null,
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "https://chamaa-6kzn.onrender.com/$1"
+    }
+  ]
+}
