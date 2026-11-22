@@ -118,7 +118,7 @@ def register(request):
             if getattr(settings, "DEBUG", False):
                 messages.error(request, f"Registration failed: {exc.__class__.__name__}: {exc}")
             else:
-                messages.error(request, f"Registration could not be completed ({exc.__class__.__name__}). Please try again.")
+                messages.error(request, f"Registration could not be completed ({exc.__class__.__name__}: {exc}). Please try again.")
             return render(request, "core/register.html", {"form": form}, status=400)
         messages.success(request, "Registration received. Your application is awaiting approval.")
         return redirect("member-login")

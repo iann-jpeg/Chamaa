@@ -17,12 +17,20 @@ def health(request):
         database_status = "mongodb-atlas"
         try:
             connection.ensure_connection()
+            write_status = "ok"
+            try:
+                database = connection.connection.get_database(settings.MONGODB_DB_NAME)
+                probe = database["_health_probe"].insert_one({"probe": "account-write"})
+                database["_health_probe"].delete_one({"_id": probe.inserted_id})
+            except Exception as write_exc:
+                write_status = f"{write_exc.__class__.__name__}: {write_exc}"
             from django.contrib.auth import get_user_model
             from core.models import Member, Organization, OrganizationMembership
             return JsonResponse({
                 "service": "chamaa",
-                "status": "ok",
+                "status": "ok" if write_status == "ok" else "degraded",
                 "database": database_status,
+                "write_probe": write_status,
                 "models": {
                     "users": get_user_model().objects.count(),
                     "organizations": Organization.objects.count(),
