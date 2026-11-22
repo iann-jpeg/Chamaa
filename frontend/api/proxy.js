@@ -13,7 +13,21 @@ export default async function handler(request) {
   const originalPath = proxiedPath ? `/${proxiedPath}` : url.pathname;
   url.searchParams.delete("path");
   const target = new URL(originalPath + url.search, backendUrl);
-  const headers = new Headers(request.headers);
+
+  const headers = new Headers();
+  for (const name of [
+    "accept",
+    "accept-language",
+    "content-type",
+    "cookie",
+    "origin",
+    "referer",
+    "user-agent",
+    "x-requested-with",
+  ]) {
+    const value = request.headers.get(name);
+    if (value) headers.set(name, value);
+  }
   headers.set("X-Forwarded-Host", url.host);
   headers.set("X-Forwarded-Proto", "https");
 
@@ -38,6 +52,11 @@ export default async function handler(request) {
       : [response.headers.get("set-cookie")].filter(Boolean);
   for (const cookie of setCookies) {
     responseHeaders.append("set-cookie", cookie);
+  }
+
+  const location = responseHeaders.get("location");
+  if (location?.startsWith("/")) {
+    responseHeaders.set("location", new URL(location, url.origin).toString());
   }
 
   return new Response(response.body, {
