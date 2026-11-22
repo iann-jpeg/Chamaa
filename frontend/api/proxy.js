@@ -4,8 +4,7 @@ export const config = {
 
 export default async function handler(request) {
   try {
-    const backendUrl =
-      process.env.RENDER_BACKEND_URL || "https://chamaa-6kzn.onrender.com";
+    const backendUrl = "https://chamaa-6kzn.onrender.com";
     const url = new URL(request.url);
     const proxiedPath = url.searchParams.get("path");
     const originalPath = proxiedPath ? `/${proxiedPath}` : url.pathname;
