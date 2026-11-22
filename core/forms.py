@@ -4,6 +4,8 @@ from django.contrib.auth.forms import AuthenticationForm, PasswordResetForm
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
+import secrets
+import string
 from .models import Member, Organization, MemberInvitation
 
 
@@ -61,10 +63,20 @@ class MemberRegistrationForm(forms.Form):
             first_name=data["first_name"],
             last_name=data["last_name"],
         )
+        alphabet = string.ascii_uppercase + string.digits
+        while True:
+            membership_number = (
+                f"{data['organization'].slug.upper()}-{''.join(secrets.choice(alphabet) for _ in range(8))}"
+            )
+            if not Member.objects.filter(
+                organization=data["organization"],
+                membership_number=membership_number,
+            ).exists():
+                break
         member = Member.objects.create(
             organization=data["organization"],
             user=user,
-            membership_number=f"{data['organization'].slug.upper()}-{user.pk:06d}",
+            membership_number=membership_number,
             middle_name=data["middle_name"],
             phone=data["phone"],
             status=Member.Status.PENDING,
@@ -76,7 +88,7 @@ class MemberRegistrationForm(forms.Form):
         MemberNotificationPreference.objects.create(member=member)
         if data.get("invitation_code"):
             matched_invitation = None
-            for invitation in member.organization.memberinvitation_set.select_for_update().filter(
+            for invitation in member.organization.memberinvitation_set.filter(
                 is_active=True, uses_remaining__gt=0
             ):
                 if invitation.matches_code(data["invitation_code"]) and invitation.is_available(
