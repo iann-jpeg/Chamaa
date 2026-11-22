@@ -1,6 +1,7 @@
 from decimal import Decimal
 from django.core.validators import MinValueValidator
 from django.db import models
+import uuid
 from core.models import Member, Organization
 
 
@@ -84,6 +85,10 @@ class Contribution(models.Model):
     amount_paid = models.DecimalField(max_digits=18, decimal_places=2, default=Decimal("0"))
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.DUE)
 
+    @property
+    def outstanding_amount(self):
+        return max(self.amount_due - self.amount_paid, Decimal("0"))
+
     def apply_payment(self, amount):
         if amount <= 0 or self.amount_paid + amount > self.amount_due:
             raise ValueError("Payment must be positive and cannot exceed the outstanding amount.")
@@ -149,3 +154,30 @@ class WalletWithdrawal(models.Model):
     approved_at = models.DateTimeField(null=True, blank=True)
     settled_at = models.DateTimeField(null=True, blank=True)
     rejection_reason = models.CharField(max_length=240, blank=True)
+
+
+class MpesaTransaction(models.Model):
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        SUCCESS = "success", "Successful"
+        FAILED = "failed", "Failed"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    member = models.ForeignKey(Member, on_delete=models.PROTECT, related_name="mpesa_transactions")
+    contribution = models.ForeignKey(
+        Contribution,
+        on_delete=models.PROTECT,
+        related_name="mpesa_transactions",
+        null=True,
+        blank=True,
+    )
+    phone = models.CharField(max_length=20)
+    amount = models.DecimalField(max_digits=18, decimal_places=2)
+    merchant_request_id = models.CharField(max_length=100, blank=True)
+    checkout_request_id = models.CharField(max_length=100, unique=True)
+    mpesa_receipt = models.CharField(max_length=50, blank=True)
+    result_code = models.IntegerField(null=True, blank=True)
+    result_description = models.CharField(max_length=300, blank=True)
+    status = models.CharField(max_length=10, choices=Status.choices, default=Status.PENDING)
+    created_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(null=True, blank=True)

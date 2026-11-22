@@ -25,7 +25,12 @@
                 <span>{{ member.user.first_name|first|upper }}{{ member.user.last_name|first|upper }}</span>
                 <div><strong>{{ member.user.get_full_name|default:member.user.username }}</strong><small>{{ member.membership_number }}</small></div>
             </div>
-            <form method="post" action="{% url 'member-logout' %}">{% csrf_token %}<button type="submit" aria-label="Sign out">⏻</button></form>
+            <form method="post" action="{% url 'member-logout' %}">
+                {% csrf_token %}
+                <button type="submit" class="sign-out-button" aria-label="Sign out" title="Sign out">
+                    <span aria-hidden="true">⏻</span><small>Sign out</small>
+                </button>
+            </form>
         </div>
     </aside>
 
@@ -81,9 +86,29 @@
             <article class="panel" id="contributions">
                 <div class="panel-heading"><div><span>PAYMENT RECORDS</span><h2>Recent contributions</h2></div></div>
                 {% if contributions %}
-                <div class="table-wrap"><table><thead><tr><th>Product</th><th>Due date</th><th>Due</th><th>Paid</th><th>Status</th></tr></thead><tbody>
+                <div class="table-wrap"><table><thead><tr><th>Product</th><th>Due date</th><th>Due</th><th>Paid</th><th>Status</th><th>M-Pesa</th></tr></thead><tbody>
                     {% for contribution in contributions %}
-                    <tr><td><strong>{{ contribution.product.name }}</strong></td><td>{{ contribution.due_date|date:"d M Y" }}</td><td>{{ contribution.amount_due }}</td><td>{{ contribution.amount_paid }}</td><td><span class="payment-status {{ contribution.status }}">{{ contribution.get_status_display }}</span></td></tr>
+                    <tr>
+                        <td><strong>{{ contribution.product.name }}</strong></td>
+                        <td>{{ contribution.due_date|date:"d M Y" }}</td>
+                        <td>{{ contribution.amount_due }}</td>
+                        <td>{{ contribution.amount_paid }}</td>
+                        <td><span class="payment-status {{ contribution.status }}">{{ contribution.get_status_display }}</span></td>
+                        <td>
+                            {% if contribution.amount_paid < contribution.amount_due %}
+                            <form class="mpesa-pay-form" method="post" action="{% url 'mpesa-pay' %}" data-status-url="/api/mpesa/status/">
+                                {% csrf_token %}
+                                <input type="hidden" name="contribution" value="{{ contribution.id }}">
+                                <input type="tel" name="phone" value="{{ member.phone }}" placeholder="2547..." required aria-label="M-Pesa phone number">
+                                <input type="number" name="amount" min="1" max="{{ contribution.outstanding_amount|floatformat:0 }}" step="1" value="{{ contribution.outstanding_amount|floatformat:0 }}" required aria-label="Amount">
+                                <button type="submit">Pay</button>
+                            </form>
+                            <small class="mpesa-feedback" role="status"></small>
+                            {% else %}
+                            <span class="payment-status paid">Paid</span>
+                            {% endif %}
+                        </td>
+                    </tr>
                     {% endfor %}
                 </tbody></table></div>
                 {% else %}<div class="compact-empty">No contribution records are available.</div>{% endif %}

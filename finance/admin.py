@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Account, Contribution, ContributionProduct, LedgerEntry
+from .models import Account, Contribution, ContributionProduct, LedgerEntry, MpesaTransaction
 
 @admin.register(Account)
 class AccountAdmin(admin.ModelAdmin):
@@ -26,3 +26,10 @@ class ContributionProductAdmin(admin.ModelAdmin):
 class ContributionAdmin(admin.ModelAdmin):
     list_display = ("member", "product", "due_date", "amount_due", "amount_paid", "status")
     list_filter = ("organization", "status", "due_date")
+
+
+@admin.register(MpesaTransaction)
+class MpesaTransactionAdmin(admin.ModelAdmin):
+    list_display = ("member", "phone", "amount", "status", "mpesa_receipt", "created_at")
+    list_filter = ("status", "created_at")
+    search_fields = ("phone", "checkout_request_id", "mpesa_receipt", "member__membership_number")

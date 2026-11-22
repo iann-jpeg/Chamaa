@@ -7,6 +7,10 @@ from django.test import TestCase
 from core.models import Member, Organization, OrganizationMembership
 from .models import Account, WalletWithdrawal
 from .services import approve_withdrawal, post_entry
+from django.utils import timezone
+from unittest.mock import patch
+from .models import MpesaTransaction
+from .services import process_mpesa_callback
 
 User = get_user_model()
 
@@ -74,3 +78,29 @@ class LedgerTests(TestCase):
         ).update(role=OrganizationMembership.Role.TREASURER)
         approve_withdrawal(withdrawal, self.user)
         self.assertEqual(withdrawal.status, WalletWithdrawal.Status.APPROVED)
+
+    def test_mpesa_success_callback_records_receipt(self):
+        transaction = MpesaTransaction.objects.create(
+            member=self.member,
+            phone="254700000001",
+            amount=Decimal("500"),
+            checkout_request_id="checkout-test-123",
+        )
+        process_mpesa_callback({
+            "Body": {
+                "stkCallback": {
+                    "CheckoutRequestID": "checkout-test-123",
+                    "ResultCode": 0,
+                    "ResultDesc": "The service request is processed successfully.",
+                    "CallbackMetadata": {
+                        "Item": [
+                            {"Name": "Amount", "Value": 500},
+                            {"Name": "MpesaReceiptNumber", "Value": "TESTRECEIPT1"},
+                        ]
+                    },
+                }
+            }
+        })
+        transaction.refresh_from_db()
+        self.assertEqual(transaction.status, MpesaTransaction.Status.SUCCESS)
+        self.assertEqual(transaction.mpesa_receipt, "TESTRECEIPT1")

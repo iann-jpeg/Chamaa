@@ -28,6 +28,7 @@ SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "django-insecure-development-on
 
 LOGIN_URL = "/account/login/"
 LOGIN_REDIRECT_URL = "/account/dashboard/"
+LOGOUT_REDIRECT_URL = "/account/login/"
 SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
 
 # SECURITY WARNING: don't run with debug turned on in production!
@@ -97,6 +98,12 @@ WSGI_APPLICATION = 'chamapilot.wsgi.application'
 
 MONGODB_URI = os.environ.get("MONGODB_URI", "").strip()
 MONGODB_DB_NAME = os.environ.get("MONGODB_DB_NAME", "chamaa")
+MPESA_ENVIRONMENT = os.environ.get("MPESA_ENVIRONMENT", "sandbox").strip().lower()
+MPESA_CONSUMER_KEY = os.environ.get("MPESA_CONSUMER_KEY", "").strip()
+MPESA_CONSUMER_SECRET = os.environ.get("MPESA_CONSUMER_SECRET", "").strip()
+MPESA_SHORTCODE = os.environ.get("MPESA_SHORTCODE", "").strip()
+MPESA_PASSKEY = os.environ.get("MPESA_PASSKEY", "").strip()
+MPESA_CALLBACK_URL = os.environ.get("MPESA_CALLBACK_URL", "").strip()
 
 if MONGODB_URI:
     DATABASES = {

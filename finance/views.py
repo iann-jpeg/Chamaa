@@ -1,13 +1,21 @@
 import json
+from decimal import Decimal
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.decorators import login_required
 from core.models import OrganizationMembership
 from django.views.decorators.http import require_GET, require_POST
+from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 from django.db import connection
 from .models import Account, WalletWithdrawal
-from .services import approve_withdrawal, get_or_create_member_account, post_entry
+from .services import (
+    approve_withdrawal,
+    get_or_create_member_account,
+    initiate_mpesa_stk,
+    post_entry,
+    process_mpesa_callback,
+)
 
 
 @require_GET
@@ -41,6 +49,13 @@ def health(request):
                 "database": database_status,
                 "write_probe": write_status,
                 "orm_write_probe": orm_write_status,
+                "mpesa_configured": bool(
+                    getattr(settings, "MPESA_CONSUMER_KEY", "")
+                    and getattr(settings, "MPESA_CONSUMER_SECRET", "")
+                    and getattr(settings, "MPESA_SHORTCODE", "")
+                    and getattr(settings, "MPESA_PASSKEY", "")
+                    and getattr(settings, "MPESA_CALLBACK_URL", "")
+                ),
                 "models": {
                     "users": get_user_model().objects.count(),
                     "organizations": Organization.objects.count(),
@@ -153,3 +168,70 @@ def approve_withdrawal_view(request, withdrawal_id):
     except (ValueError, PermissionError) as exc:
         return JsonResponse({"error": str(exc)}, status=403)
     return JsonResponse({"id": withdrawal.id, "status": withdrawal.status})
+
+
+@login_required
+@require_POST
+def initiate_mpesa_payment(request):
+    if not hasattr(request.user, "member_profile"):
+        return JsonResponse({"error": "Only members can pay cycle contributions."}, status=403)
+
+    contribution_id = request.POST.get("contribution")
+    phone = request.POST.get("phone", "")
+    amount = request.POST.get("amount", "")
+    try:
+        from .models import Contribution
+
+        contribution = Contribution.objects.get(
+            pk=contribution_id,
+            member=request.user.member_profile,
+        )
+        transaction = initiate_mpesa_stk(
+            member=request.user.member_profile,
+            contribution=contribution,
+            phone=phone,
+            amount=amount,
+        )
+    except Contribution.DoesNotExist:
+        return JsonResponse({"error": "Contribution not found."}, status=404)
+    except (KeyError, ValueError, ArithmeticError) as exc:
+        return JsonResponse({"error": str(exc)}, status=400)
+    except RuntimeError as exc:
+        return JsonResponse({"error": str(exc)}, status=502)
+
+    return JsonResponse(
+        {
+            "id": str(transaction.id),
+            "checkout_request_id": transaction.checkout_request_id,
+            "status": transaction.status,
+        },
+        status=202,
+    )
+
+
+@login_required
+@require_GET
+def mpesa_payment_status(request, transaction_id):
+    transaction = get_object_or_404(
+        request.user.member_profile.mpesa_transactions,
+        pk=transaction_id,
+    )
+    return JsonResponse(
+        {
+            "id": str(transaction.id),
+            "status": transaction.status,
+            "result_description": transaction.result_description,
+            "mpesa_receipt": transaction.mpesa_receipt,
+        }
+    )
+
+
+@csrf_exempt
+@require_POST
+def mpesa_callback(request):
+    try:
+        payload = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"ResultCode": 1, "ResultDesc": "Invalid JSON"}, status=400)
+    process_mpesa_callback(payload)
+    return JsonResponse({"ResultCode": 0, "ResultDesc": "Accepted"})

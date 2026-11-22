@@ -130,12 +130,14 @@ def dashboard(request):
     member = get_object_or_404(Member, user=request.user)
     participations = CycleParticipant.objects.filter(member=member).select_related("cycle")
     contributions = Contribution.objects.filter(member=member).select_related("product").order_by("-due_date")[:6]
+    mpesa_transactions = member.mpesa_transactions.order_by("-created_at")[:5]
     return render(request, "core/dashboard.html", {
         "member": member,
         "notifications": member.notifications.all()[:5],
         "tickets": member.support_tickets.all()[:5],
         "participations": participations,
         "contributions": contributions,
+        "mpesa_transactions": mpesa_transactions,
     })
 
 
