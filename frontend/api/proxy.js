@@ -3,7 +3,8 @@ export const config = {
 };
 
 export default async function handler(request) {
-  const backendUrl = process.env.RENDER_BACKEND_URL;
+  const backendUrl =
+    process.env.RENDER_BACKEND_URL || "https://chamaa-6kzn.onrender.com";
   if (!backendUrl) {
     return new Response("RENDER_BACKEND_URL is not configured", { status: 503 });
   }
