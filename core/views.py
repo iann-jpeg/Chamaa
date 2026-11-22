@@ -86,14 +86,17 @@ class MemberLoginView(LoginView):
         user = self.request.user
         if user.is_superuser:
             return "/administration/platform/"
-        membership = getattr(user, "organizationmembership_set", None)
-        if membership is not None:
-            organization_admin = membership.filter(
-                is_active=True,
-                role="admin",
-            ).select_related("organization").first()
-            if organization_admin:
-                return f"/administration/organization/{organization_admin.organization_id}/"
+        try:
+            membership = getattr(user, "organizationmembership_set", None)
+            if membership is not None:
+                organization_admin = membership.filter(
+                    is_active=True,
+                    role="admin",
+                ).first()
+                if organization_admin:
+                    return f"/administration/organization/{organization_admin.organization_id}/"
+        except Exception:
+            logger.exception("Could not resolve the organization redirect for authenticated user")
         return super().get_success_url()
 
     def form_valid(self, form):

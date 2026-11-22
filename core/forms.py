@@ -2,7 +2,7 @@ from django import forms
 from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.forms import AuthenticationForm, PasswordResetForm
 from django.core.exceptions import ValidationError
-from django.db import DatabaseError, transaction
+from django.db import DatabaseError
 from django.utils import timezone
 import logging
 import secrets
@@ -62,54 +62,59 @@ class MemberRegistrationForm(forms.Form):
                     break
         return cleaned
 
-    @transaction.atomic
     def save(self):
         data = self.cleaned_data
-        user = get_user_model().objects.create_user(
-            username=data["username"],
-            email=data["email"],
-            password=data["password"],
-            first_name=data["first_name"],
-            last_name=data["last_name"],
-        )
-        alphabet = string.ascii_uppercase + string.digits
-        while True:
-            membership_number = (
-                f"{data['organization'].slug.upper()}-{''.join(secrets.choice(alphabet) for _ in range(8))}"
+        user = None
+        try:
+            user = get_user_model().objects.create_user(
+                username=data["username"],
+                email=data["email"],
+                password=data["password"],
+                first_name=data["first_name"],
+                last_name=data["last_name"],
             )
-            if not Member.objects.filter(
-                organization=data["organization"],
-                membership_number=membership_number,
-            ).exists():
-                break
-        member = Member.objects.create(
-            organization=data["organization"],
-            user=user,
-            membership_number=membership_number,
-            middle_name=data["middle_name"],
-            phone=data["phone"],
-            status=Member.Status.PENDING,
-        )
-        from .models import OrganizationMembership, MemberNotificationPreference
-        OrganizationMembership.objects.create(
-            organization=member.organization, user=user, role=OrganizationMembership.Role.MEMBER
-        )
-        MemberNotificationPreference.objects.create(member=member)
-        if data.get("invitation_code"):
-            matched_invitation = None
-            for invitation in member.organization.memberinvitation_set.filter(
-                is_active=True, uses_remaining__gt=0
-            ):
-                if invitation.matches_code(data["invitation_code"]) and invitation.is_available(
-                    email=data["email"], now=timezone.now()
-                ):
-                    matched_invitation = invitation
+            alphabet = string.ascii_uppercase + string.digits
+            while True:
+                membership_number = (
+                    f"{data['organization'].slug.upper()}-{''.join(secrets.choice(alphabet) for _ in range(8))}"
+                )
+                if not Member.objects.filter(
+                    organization=data["organization"],
+                    membership_number=membership_number,
+                ).exists():
                     break
-            if matched_invitation:
-                matched_invitation.uses_remaining -= 1
-                if matched_invitation.uses_remaining == 0:
-                    matched_invitation.is_active = False
-                matched_invitation.save(update_fields=["uses_remaining", "is_active"])
+            member = Member.objects.create(
+                organization=data["organization"],
+                user=user,
+                membership_number=membership_number,
+                middle_name=data["middle_name"],
+                phone=data["phone"],
+                status=Member.Status.PENDING,
+            )
+            from .models import OrganizationMembership, MemberNotificationPreference
+            OrganizationMembership.objects.create(
+                organization=member.organization, user=user, role=OrganizationMembership.Role.MEMBER
+            )
+            MemberNotificationPreference.objects.create(member=member)
+            if data.get("invitation_code"):
+                matched_invitation = None
+                for invitation in member.organization.memberinvitation_set.filter(
+                    is_active=True, uses_remaining__gt=0
+                ):
+                    if invitation.matches_code(data["invitation_code"]) and invitation.is_available(
+                        email=data["email"], now=timezone.now()
+                    ):
+                        matched_invitation = invitation
+                        break
+                if matched_invitation:
+                    matched_invitation.uses_remaining -= 1
+                    if matched_invitation.uses_remaining == 0:
+                        matched_invitation.is_active = False
+                    matched_invitation.save(update_fields=["uses_remaining", "is_active"])
+        except Exception:
+            if user is not None:
+                get_user_model().objects.filter(pk=user.pk).delete()
+            raise
         return member
 
 
@@ -123,7 +128,7 @@ class MemberAuthenticationForm(AuthenticationForm):
         try:
             user = User.objects.filter(email__iexact=identifier).first()
             if not user:
-                member = Member.objects.filter(phone=identifier).select_related("user").first()
+                member = Member.objects.filter(phone=identifier).first()
                 user = member.user if member else None
             username = user.username if user else identifier
             self.user_cache = authenticate(self.request, username=username, password=password)

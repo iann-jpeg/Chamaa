@@ -65,6 +65,23 @@ class MemberAccountTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "already in use")
 
+    def test_duplicate_phone_is_rejected(self):
+        user = User.objects.create_user(username="existing", email="existing@example.com", password="safe-password")
+        Member.objects.create(
+            organization=self.organization,
+            user=user,
+            membership_number="SMCF-EXISTING",
+            phone="+254700000003",
+        )
+        response = self.client.post("/account/register/", {
+            "first_name": "Amina", "last_name": "Otieno", "username": "amina",
+            "email": "amina@example.com", "phone": "+254700000003",
+            "password": "Strong-password-123", "confirm_password": "Strong-password-123",
+            "organization": self.organization.pk, "terms_accepted": "on", "privacy_accepted": "on",
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "already registered")
+
     def test_invitation_code_accepts_matching_active_invitation(self):
         invitation = MemberInvitation.objects.create(
             organization=self.organization,
@@ -156,6 +173,25 @@ class MemberAccountTests(TestCase):
 
         response = self.client.post("/account/login/", {
             "username": "pending@example.com",
+            "password": "Strong-password-123",
+        })
+        self.assertRedirects(response, "/account/dashboard/")
+
+    def test_member_can_login_by_mobile_number(self):
+        user = User.objects.create_user(
+            username="mobile-member",
+            email="mobile@example.com",
+            password="Strong-password-123",
+        )
+        Member.objects.create(
+            organization=self.organization,
+            user=user,
+            membership_number="SMCF-MOBILE",
+            phone="+254700000004",
+            status=Member.Status.PENDING,
+        )
+        response = self.client.post("/account/login/", {
+            "username": "+254700000004",
             "password": "Strong-password-123",
         })
         self.assertRedirects(response, "/account/dashboard/")
