@@ -53,7 +53,6 @@ class MemberRegistrationForm(forms.Form):
                     break
         return cleaned
 
-    @transaction.atomic
     def save(self):
         data = self.cleaned_data
         user = get_user_model().objects.create_user(
