@@ -1,10 +1,11 @@
 from django.contrib.auth.models import User
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.conf import settings
 from pathlib import Path
 from django.utils import timezone
 from datetime import timedelta
 from .models import Member, MemberInvitation, Organization, SupportTicket
+from unittest.mock import patch
 
 
 class MemberAccountTests(TestCase):
@@ -32,6 +33,25 @@ class MemberAccountTests(TestCase):
         self.assertTrue(member.membership_number.startswith("SMCF-"))
         self.assertEqual(member.user.email, "amina@example.com")
         self.assertTrue(member.user.organizationmembership_set.exists())
+
+    @override_settings(DEBUG=True)
+    def test_registration_save_error_is_reported_without_redirecting(self):
+        with patch("core.forms.MemberRegistrationForm.save", side_effect=RuntimeError("mongo write failed")):
+            response = self.client.post("/account/register/", {
+                "first_name": "Amina",
+                "middle_name": "",
+                "last_name": "Otieno",
+                "username": "amina",
+                "email": "amina@example.com",
+                "phone": "+254700000001",
+                "password": "Strong-password-123",
+                "confirm_password": "Strong-password-123",
+                "organization": self.organization.pk,
+                "terms_accepted": "on",
+                "privacy_accepted": "on",
+            })
+        self.assertEqual(response.status_code, 400)
+        self.assertContains(response, "RuntimeError: mongo write failed", status_code=400)
 
     def test_duplicate_username_is_rejected(self):
         User.objects.create_user(username="amina", email="old@example.com", password="safe-password")

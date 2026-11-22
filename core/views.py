@@ -1,7 +1,10 @@
 from django.contrib import messages
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView
 import logging
+import os
+from django.db import IntegrityError
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 from .forms import MemberAuthenticationForm, MemberRegistrationForm
@@ -11,9 +14,57 @@ from finance.models import Contribution, CycleParticipant
 logger = logging.getLogger(__name__)
 
 
+def ensure_production_accounts():
+    from django.contrib.auth import get_user_model
+    from .models import Organization
+
+    organization = Organization.objects.filter(
+        slug="smart-moves-community-finance"
+    ).first()
+    if organization is None:
+        try:
+            organization = Organization.objects.create(
+                name="SMART MOVES COMMUNITY FINANCE",
+                slug="smart-moves-community-finance",
+                status=Organization.Status.ACTIVE,
+                is_active=True,
+                allow_public_registration=True,
+                require_admin_approval=True,
+                country="Kenya",
+            )
+        except IntegrityError:
+            organization = Organization.objects.filter(
+                slug="smart-moves-community-finance"
+            ).first()
+    elif not organization.is_active or organization.status != Organization.Status.ACTIVE:
+        organization.is_active = True
+        organization.status = Organization.Status.ACTIVE
+        organization.save(update_fields=["is_active", "status"])
+
+    username = os.environ.get("DJANGO_SUPERUSER_USERNAME", "").strip()
+    password = os.environ.get("DJANGO_SUPERUSER_PASSWORD", "")
+    email = os.environ.get("DJANGO_SUPERUSER_EMAIL", "").strip()
+    if username and password:
+        User = get_user_model()
+        user = User.objects.filter(username=username).first()
+        if user is None:
+            user = User(username=username, email=email)
+        else:
+            user.email = email or user.email
+        user.is_superuser = True
+        user.is_staff = True
+        user.is_active = True
+        user.set_password(password)
+        user.save()
+
+
 class MemberLoginView(LoginView):
     authentication_form = MemberAuthenticationForm
     template_name = "core/login.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        ensure_production_accounts()
+        return super().dispatch(request, *args, **kwargs)
 
     def get_success_url(self):
         user = self.request.user
@@ -39,13 +90,17 @@ class MemberLoginView(LoginView):
 
 
 def register(request):
+    ensure_production_accounts()
     form = MemberRegistrationForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
         try:
-            form.save()
-        except Exception:
+            member = form.save()
+        except Exception as exc:
             logger.exception("Member registration failed")
-            messages.error(request, "Registration could not be completed. Please try again.")
+            if getattr(settings, "DEBUG", False):
+                messages.error(request, f"Registration failed: {exc.__class__.__name__}: {exc}")
+            else:
+                messages.error(request, "Registration could not be completed. Please try again.")
             return render(request, "core/register.html", {"form": form}, status=400)
         messages.success(request, "Registration received. Your application is awaiting approval.")
         return redirect("member-login")
