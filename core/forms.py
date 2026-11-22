@@ -3,7 +3,8 @@ from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.forms import AuthenticationForm, PasswordResetForm
 from django.core.exceptions import ValidationError
 from django.db import transaction
-from .models import Member, Organization
+from django.utils import timezone
+from .models import Member, Organization, MemberInvitation
 
 
 class MemberRegistrationForm(forms.Form):
@@ -38,12 +39,17 @@ class MemberRegistrationForm(forms.Form):
             self.add_error("confirm_password", "Passwords do not match.")
         organization = cleaned.get("organization")
         code = cleaned.get("invitation_code")
+        email = cleaned.get("email")
         if organization and not organization.allow_public_registration and not code:
             self.add_error("invitation_code", "An organization invitation code is required.")
-        if organization and code and not organization.memberinvitation_set.filter(
-            code=code, is_active=True, uses_remaining__gt=0
-        ).exists():
-            self.add_error("invitation_code", "That invitation code is invalid or expired.")
+        if organization and code:
+            matched = False
+            for invitation in organization.memberinvitation_set.filter(is_active=True, uses_remaining__gt=0):
+                if invitation.matches_code(code) and invitation.is_available(email=email):
+                    matched = True
+                    break
+            if not matched:
+                self.add_error("invitation_code", "That invitation code is invalid, expired, or for a different email.")
         return cleaned
 
     @transaction.atomic
@@ -70,13 +76,20 @@ class MemberRegistrationForm(forms.Form):
         )
         MemberNotificationPreference.objects.create(member=member)
         if data.get("invitation_code"):
-            invitation = member.organization.memberinvitation_set.select_for_update().get(
-                code=data["invitation_code"]
-            )
-            invitation.uses_remaining -= 1
-            if invitation.uses_remaining == 0:
-                invitation.is_active = False
-            invitation.save(update_fields=["uses_remaining", "is_active"])
+            matched_invitation = None
+            for invitation in member.organization.memberinvitation_set.select_for_update().filter(
+                is_active=True, uses_remaining__gt=0
+            ):
+                if invitation.matches_code(data["invitation_code"]) and invitation.is_available(
+                    email=data["email"], now=timezone.now()
+                ):
+                    matched_invitation = invitation
+                    break
+            if matched_invitation:
+                matched_invitation.uses_remaining -= 1
+                if matched_invitation.uses_remaining == 0:
+                    matched_invitation.is_active = False
+                matched_invitation.save(update_fields=["uses_remaining", "is_active"])
         return member
 
 

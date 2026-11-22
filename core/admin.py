@@ -1,5 +1,52 @@
 from django.contrib import admin
-from .models import Member, Organization, OrganizationMembership
+from django import forms
+from .models import Member, MemberInvitation, Organization, OrganizationMembership
+
+
+class MemberInvitationAdminForm(forms.ModelForm):
+    code = forms.CharField(
+        required=False,
+        min_length=8,
+        max_length=64,
+        help_text="Enter at least 8 characters. Existing codes remain unchanged unless replaced.",
+    )
+
+    class Meta:
+        model = MemberInvitation
+        fields = ("organization", "code", "email", "expires_at", "uses_remaining", "is_active")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["code"].required = self.instance.pk is None
+
+    def clean_code(self):
+        code = self.cleaned_data.get("code", "").strip()
+        if self.instance.pk is None and len(code) < 8:
+            raise forms.ValidationError("Invitation codes must contain at least 8 characters.")
+        if code and len(code) < 8:
+            raise forms.ValidationError("Invitation codes must contain at least 8 characters.")
+        return code
+
+    def save(self, commit=True):
+        original_code = MemberInvitation.objects.filter(pk=self.instance.pk).values_list("code", flat=True).first() if self.instance.pk else None
+        invitation = super().save(commit=False)
+        raw_code = self.cleaned_data.get("code", "").strip()
+        if raw_code:
+            invitation.set_code(raw_code)
+        elif original_code:
+            invitation.code = original_code
+        if commit:
+            invitation.save()
+            self.save_m2m()
+        return invitation
+
+
+@admin.register(MemberInvitation)
+class MemberInvitationAdmin(admin.ModelAdmin):
+    form = MemberInvitationAdminForm
+    list_display = ("organization", "email", "expires_at", "uses_remaining", "is_active")
+    list_filter = ("organization", "is_active")
+    search_fields = ("organization__name", "email")
 
 @admin.register(Organization)
 class OrganizationAdmin(admin.ModelAdmin):

@@ -8,4 +8,6 @@ urlpatterns = [
     path("platform/organizations/<int:organization_id>/<str:action>/", views.organization_status, name="platform-organization-status"),
     path("platform/announcements/", views.platform_announcement, name="platform-announcement"),
     path("organization/<int:organization_id>/", views.organization_dashboard, name="organization-dashboard"),
+    path("organization/<int:organization_id>/invitations/create/", views.organization_invitation_create, name="organization-invitation-create"),
+    path("organization/<int:organization_id>/invitations/<int:invitation_id>/deactivate/", views.organization_invitation_deactivate, name="organization-invitation-deactivate"),
 ]

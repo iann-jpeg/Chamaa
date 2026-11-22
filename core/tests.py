@@ -2,7 +2,9 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 from django.conf import settings
 from pathlib import Path
-from .models import Member, Organization, SupportTicket
+from django.utils import timezone
+from datetime import timedelta
+from .models import Member, MemberInvitation, Organization, SupportTicket
 
 
 class MemberAccountTests(TestCase):
@@ -41,6 +43,69 @@ class MemberAccountTests(TestCase):
         })
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "already in use")
+
+    def test_invitation_code_accepts_matching_active_invitation(self):
+        invitation = MemberInvitation.objects.create(
+            organization=self.organization,
+            email="amina@example.com",
+            expires_at=timezone.now() + timedelta(days=1),
+            uses_remaining=1,
+            is_active=True,
+        )
+        invitation.set_code("SMART2026")
+        invitation.save(update_fields=["code"])
+
+        response = self.client.post("/account/register/", {
+            "first_name": "Amina", "middle_name": "", "last_name": "Otieno",
+            "username": "amina", "email": "amina@example.com", "phone": "+254700000001",
+            "password": "Strong-password-123", "confirm_password": "Strong-password-123",
+            "organization": self.organization.pk, "invitation_code": "SMART2026",
+            "terms_accepted": "on", "privacy_accepted": "on",
+        })
+        self.assertRedirects(response, "/account/login/")
+        invitation.refresh_from_db()
+        self.assertFalse(invitation.is_active)
+        self.assertEqual(invitation.uses_remaining, 0)
+
+    def test_invitation_code_rejects_wrong_email(self):
+        invitation = MemberInvitation.objects.create(
+            organization=self.organization,
+            email="invited@example.com",
+            uses_remaining=1,
+            is_active=True,
+        )
+        invitation.set_code("SMART2026")
+        invitation.save(update_fields=["code"])
+
+        response = self.client.post("/account/register/", {
+            "first_name": "Amina", "middle_name": "", "last_name": "Otieno",
+            "username": "amina", "email": "other@example.com", "phone": "+254700000001",
+            "password": "Strong-password-123", "confirm_password": "Strong-password-123",
+            "organization": self.organization.pk, "invitation_code": "SMART2026",
+            "terms_accepted": "on", "privacy_accepted": "on",
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "different email")
+
+    def test_invitation_code_rejects_expired_code(self):
+        invitation = MemberInvitation.objects.create(
+            organization=self.organization,
+            expires_at=timezone.now() - timedelta(minutes=1),
+            uses_remaining=1,
+            is_active=True,
+        )
+        invitation.set_code("SMART2026")
+        invitation.save(update_fields=["code"])
+
+        response = self.client.post("/account/register/", {
+            "first_name": "Amina", "middle_name": "", "last_name": "Otieno",
+            "username": "amina", "email": "amina@example.com", "phone": "+254700000001",
+            "password": "Strong-password-123", "confirm_password": "Strong-password-123",
+            "organization": self.organization.pk, "invitation_code": "SMART2026",
+            "terms_accepted": "on", "privacy_accepted": "on",
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "invalid, expired")
 
     def test_member_can_login_by_email_and_submit_support_ticket(self):
         user = User.objects.create_user(

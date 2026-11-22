@@ -1,4 +1,5 @@
 from django.contrib.auth.models import User
+from django.contrib.auth.hashers import check_password, make_password
 from django.core.validators import MinLengthValidator
 from django.db import models
 
@@ -95,11 +96,36 @@ class Member(models.Model):
 
 class MemberInvitation(models.Model):
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE)
-    code = models.CharField(max_length=64, unique=True, validators=[MinLengthValidator(8)])
+    code = models.CharField(max_length=128, unique=True, validators=[MinLengthValidator(8)])
     email = models.EmailField(blank=True)
     expires_at = models.DateTimeField(null=True, blank=True)
     uses_remaining = models.PositiveIntegerField(default=1)
     is_active = models.BooleanField(default=True)
+
+    def set_code(self, raw_code):
+        raw_code = raw_code.strip()
+        if len(raw_code) < 8:
+            raise ValueError("Invitation codes must contain at least 8 characters.")
+        self.code = make_password(raw_code)
+
+    def matches_code(self, raw_code):
+        return bool(raw_code) and check_password(raw_code.strip(), self.code)
+
+    def is_available(self, email=None, now=None):
+        from django.utils import timezone
+        now = now or timezone.now()
+        if not self.is_active or self.uses_remaining < 1:
+            return False
+        if self.expires_at and self.expires_at <= now:
+            return False
+        if self.email and email and self.email.lower() != email.strip().lower():
+            return False
+        if self.email and not email:
+            return False
+        return True
+
+    def __str__(self):
+        return f"{self.organization.name} invitation"
 
 
 class MemberVerification(models.Model):
