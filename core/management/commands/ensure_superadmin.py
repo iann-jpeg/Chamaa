@@ -2,7 +2,8 @@ import os
 
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
-from core.models import Organization
+from core.models import Organization, OrganizationMembership
+from finance.models import Cycle
 
 
 class Command(BaseCommand):
@@ -39,9 +40,15 @@ class Command(BaseCommand):
                 "Super-admin bootstrap skipped: username or password environment variable is missing."
             )
 
-        organization = Organization.objects.filter(
-            slug="smart-moves-community-finance"
-        ).first()
+        organization = Organization.objects.filter(slug="smcf").first()
+        if organization is None:
+            organization = Organization.objects.filter(
+                slug="smart-moves-community-finance"
+            ).first()
+        if organization is None:
+            organization = Organization.objects.filter(
+                name="SMART MOVES COMMUNITY FINANCE"
+            ).order_by("pk").first()
         organization_created = organization is None
         if organization is None:
             organization = Organization(
@@ -58,6 +65,15 @@ class Command(BaseCommand):
             organization.is_active = True
             organization.status = "active"
             organization.save(update_fields=["is_active", "status"])
+        for duplicate in Organization.objects.filter(
+            name="SMART MOVES COMMUNITY FINANCE"
+        ).exclude(pk=organization.pk):
+            if (
+                not duplicate.member_set.exists()
+                and not OrganizationMembership.objects.filter(organization=duplicate).exists()
+                and not Cycle.objects.filter(organization=duplicate).exists()
+            ):
+                duplicate.delete()
         action = "created" if organization_created else "verified"
         self.stdout.write(
             self.style.SUCCESS(

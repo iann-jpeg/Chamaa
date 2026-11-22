@@ -19,8 +19,16 @@ def ensure_production_accounts():
     from .models import Organization
 
     organization = Organization.objects.filter(
-        slug="smart-moves-community-finance"
+        slug="smcf"
     ).first()
+    if organization is None:
+        organization = Organization.objects.filter(
+            slug="smart-moves-community-finance"
+        ).first()
+    if organization is None:
+        organization = Organization.objects.filter(
+            name="SMART MOVES COMMUNITY FINANCE"
+        ).order_by("pk").first()
     if organization is None:
         try:
             organization = Organization.objects.create(
@@ -34,12 +42,24 @@ def ensure_production_accounts():
             )
         except IntegrityError:
             organization = Organization.objects.filter(
-                slug="smart-moves-community-finance"
+                slug="smcf"
             ).first()
-    elif not organization.is_active or organization.status != Organization.Status.ACTIVE:
+    if not organization.is_active or organization.status != Organization.Status.ACTIVE:
         organization.is_active = True
         organization.status = Organization.Status.ACTIVE
         organization.save(update_fields=["is_active", "status"])
+
+    from .models import OrganizationMembership
+    from finance.models import Cycle
+    for duplicate in Organization.objects.filter(
+        name="SMART MOVES COMMUNITY FINANCE"
+    ).exclude(pk=organization.pk):
+        if (
+            not duplicate.member_set.exists()
+            and not OrganizationMembership.objects.filter(organization=duplicate).exists()
+            and not Cycle.objects.filter(organization=duplicate).exists()
+        ):
+            duplicate.delete()
 
     username = os.environ.get("DJANGO_SUPERUSER_USERNAME", "").strip()
     password = os.environ.get("DJANGO_SUPERUSER_PASSWORD", "")
