@@ -2,11 +2,14 @@ from django import forms
 from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.forms import AuthenticationForm, PasswordResetForm
 from django.core.exceptions import ValidationError
-from django.db import transaction
+from django.db import DatabaseError, transaction
 from django.utils import timezone
+import logging
 import secrets
 import string
 from .models import Member, Organization, MemberInvitation
+
+logger = logging.getLogger(__name__)
 
 
 class MemberRegistrationForm(forms.Form):
@@ -35,6 +38,12 @@ class MemberRegistrationForm(forms.Form):
             raise ValidationError("That email address is already registered.")
         return email
 
+    def clean_phone(self):
+        phone = self.cleaned_data["phone"].strip()
+        if Member.objects.filter(phone=phone).exists():
+            raise ValidationError("That mobile number is already registered.")
+        return phone
+
     def clean(self):
         cleaned = super().clean()
         if cleaned.get("password") != cleaned.get("confirm_password"):
@@ -53,6 +62,7 @@ class MemberRegistrationForm(forms.Form):
                     break
         return cleaned
 
+    @transaction.atomic
     def save(self):
         data = self.cleaned_data
         user = get_user_model().objects.create_user(
@@ -107,15 +117,19 @@ class MemberAuthenticationForm(AuthenticationForm):
     username = forms.CharField(label="Username, email, or mobile number")
 
     def clean(self):
-        identifier = self.cleaned_data.get("username")
+        identifier = (self.cleaned_data.get("username") or "").strip()
         password = self.cleaned_data.get("password")
         User = get_user_model()
-        user = User.objects.filter(email=identifier.lower()).first()
-        if not user:
-            member = Member.objects.filter(phone=identifier).select_related("user").first()
-            user = member.user if member else None
-        username = user.username if user else identifier
-        self.user_cache = authenticate(self.request, username=username, password=password)
+        try:
+            user = User.objects.filter(email__iexact=identifier).first()
+            if not user:
+                member = Member.objects.filter(phone=identifier).select_related("user").first()
+                user = member.user if member else None
+            username = user.username if user else identifier
+            self.user_cache = authenticate(self.request, username=username, password=password)
+        except DatabaseError as exc:
+            logger.exception("Authentication database lookup failed")
+            raise ValidationError("Sign-in is temporarily unavailable. Please try again.") from exc
         if self.user_cache is None:
             raise self.get_invalid_login_error()
         if not self.user_cache.is_active:

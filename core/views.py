@@ -82,10 +82,6 @@ class MemberLoginView(LoginView):
     authentication_form = MemberAuthenticationForm
     template_name = "core/login.html"
 
-    def dispatch(self, request, *args, **kwargs):
-        ensure_production_accounts()
-        return super().dispatch(request, *args, **kwargs)
-
     def get_success_url(self):
         user = self.request.user
         if user.is_superuser:
@@ -110,7 +106,6 @@ class MemberLoginView(LoginView):
 
 
 def register(request):
-    ensure_production_accounts()
     form = MemberRegistrationForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
         try:

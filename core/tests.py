@@ -3,6 +3,7 @@ from django.test import TestCase, override_settings
 from django.conf import settings
 from pathlib import Path
 from django.utils import timezone
+from django.db import DatabaseError
 from datetime import timedelta
 from .models import Member, MemberInvitation, Organization, SupportTicket
 from unittest.mock import patch
@@ -130,6 +131,15 @@ class MemberAccountTests(TestCase):
         invitation.refresh_from_db()
         self.assertTrue(invitation.is_active)
         self.assertEqual(invitation.uses_remaining, 1)
+
+    @patch("core.forms.authenticate", side_effect=DatabaseError("database unavailable"))
+    def test_login_database_error_is_shown_as_a_form_error(self, authenticate_mock):
+        response = self.client.post("/account/login/", {
+            "username": "amina@example.com",
+            "password": "Strong-password-123",
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Sign-in is temporarily unavailable")
 
     def test_pending_member_can_log_in_before_approval(self):
         user = User.objects.create_user(
