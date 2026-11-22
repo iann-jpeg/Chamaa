@@ -52,10 +52,13 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'corsheaders',
     'whitenoise.runserver_nostatic',
+    'accounts',
     'core',
     'finance',
     'administration',
 ]
+
+AUTH_USER_MODEL = "accounts.User"
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -176,7 +179,10 @@ CSRF_COOKIE_SECURE = not DEBUG
 SECURE_SSL_REDIRECT = os.environ.get("SECURE_SSL_REDIRECT", "false").lower() in {"1", "true", "yes"}
 SESSION_COOKIE_SAMESITE = os.environ.get("SESSION_COOKIE_SAMESITE", "lax")
 
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+if MONGODB_URI:
+    DEFAULT_AUTO_FIELD = "django_mongodb_backend.fields.ObjectIdAutoField"
+else:
+    DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
 # Email

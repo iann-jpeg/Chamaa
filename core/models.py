@@ -1,4 +1,4 @@
-from django.contrib.auth.models import User
+from django.conf import settings
 from django.contrib.auth.hashers import check_password, make_password
 from django.core.validators import MinLengthValidator
 from django.db import models
@@ -52,7 +52,7 @@ class OrganizationMembership(models.Model):
         AUDITOR = "auditor", "Auditor"
 
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     role = models.CharField(max_length=20, choices=Role.choices, default=Role.MEMBER)
     is_active = models.BooleanField(default=True)
 
@@ -70,7 +70,7 @@ class Member(models.Model):
         EXITED = "exited", "Exited"
 
     organization = models.ForeignKey(Organization, on_delete=models.PROTECT)
-    user = models.OneToOneField(User, on_delete=models.PROTECT, related_name="member_profile")
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="member_profile")
     membership_number = models.CharField(max_length=32)
     phone = models.CharField(max_length=30, blank=True)
     middle_name = models.CharField(max_length=150, blank=True)
@@ -169,7 +169,7 @@ class MemberNotification(models.Model):
 
 class MemberActivityLog(models.Model):
     member = models.ForeignKey(Member, related_name="activity_logs", on_delete=models.PROTECT)
-    actor = models.ForeignKey(User, null=True, blank=True, on_delete=models.PROTECT)
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.PROTECT)
     action = models.CharField(max_length=120)
     details = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -201,6 +201,6 @@ class SupportTicket(models.Model):
 
 class SupportMessage(models.Model):
     ticket = models.ForeignKey(SupportTicket, related_name="messages", on_delete=models.CASCADE)
-    author = models.ForeignKey(User, on_delete=models.PROTECT)
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
     message = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)

@@ -1,5 +1,5 @@
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models import Count, Sum
 from django.http import Http404
@@ -9,6 +9,8 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 import secrets
 import string
+
+User = get_user_model()
 
 from core.models import Member, MemberInvitation, Organization, OrganizationMembership
 from finance.models import Cycle, LedgerEntry, WalletWithdrawal

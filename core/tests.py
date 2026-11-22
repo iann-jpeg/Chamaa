@@ -1,4 +1,4 @@
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from django.conf import settings
 from pathlib import Path
@@ -7,6 +7,8 @@ from django.db import DatabaseError
 from datetime import timedelta
 from .models import Member, MemberInvitation, Organization, SupportTicket
 from unittest.mock import patch
+
+User = get_user_model()
 
 
 class MemberAccountTests(TestCase):

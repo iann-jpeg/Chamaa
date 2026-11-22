@@ -3,7 +3,7 @@
   "rewrites": [
     {
       "source": "/(.*)",
-      "destination": "/api/proxy?path=$1"
+      "destination": "https://chamaa-6kzn.onrender.com/$1"
     }
   ]
 }

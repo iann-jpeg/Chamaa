@@ -2,11 +2,13 @@ from django.test import TestCase
 
 # Create your tests here.
 from decimal import Decimal
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.test import TestCase
 from core.models import Member, Organization, OrganizationMembership
 from .models import Account, WalletWithdrawal
 from .services import approve_withdrawal, post_entry
+
+User = get_user_model()
 
 
 class LedgerTests(TestCase):
