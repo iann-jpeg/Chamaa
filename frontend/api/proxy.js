@@ -28,6 +28,8 @@ export default async function handler(request) {
     const value = request.headers.get(name);
     if (value) headers.set(name, value);
   }
+  headers.set("Origin", url.origin);
+  headers.set("Referer", url.toString());
   headers.set("X-Forwarded-Host", url.host);
   headers.set("X-Forwarded-Proto", "https");
 

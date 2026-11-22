@@ -1,11 +1,14 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView
+import logging
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 from .forms import MemberAuthenticationForm, MemberRegistrationForm
 from .models import Member, MemberNotification, SupportTicket
 from finance.models import Contribution, CycleParticipant
+
+logger = logging.getLogger(__name__)
 
 
 class MemberLoginView(LoginView):
@@ -38,7 +41,12 @@ class MemberLoginView(LoginView):
 def register(request):
     form = MemberRegistrationForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
-        form.save()
+        try:
+            form.save()
+        except Exception:
+            logger.exception("Member registration failed")
+            messages.error(request, "Registration could not be completed. Please try again.")
+            return render(request, "core/register.html", {"form": form}, status=400)
         messages.success(request, "Registration received. Your application is awaiting approval.")
         return redirect("member-login")
     return render(request, "core/register.html", {"form": form})

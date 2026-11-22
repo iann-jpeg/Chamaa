@@ -17,6 +17,19 @@ def health(request):
         database_status = "mongodb-atlas"
         try:
             connection.ensure_connection()
+            from django.contrib.auth import get_user_model
+            from core.models import Member, Organization, OrganizationMembership
+            return JsonResponse({
+                "service": "chamaa",
+                "status": "ok",
+                "database": database_status,
+                "models": {
+                    "users": get_user_model().objects.count(),
+                    "organizations": Organization.objects.count(),
+                    "members": Member.objects.count(),
+                    "memberships": OrganizationMembership.objects.count(),
+                },
+            })
         except Exception as exc:
             return JsonResponse({
                 "service": "chamaa",
