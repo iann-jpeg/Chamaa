@@ -24,13 +24,23 @@ def health(request):
                 database["_health_probe"].delete_one({"_id": probe.inserted_id})
             except Exception as write_exc:
                 write_status = f"{write_exc.__class__.__name__}: {write_exc}"
+            orm_write_status = "ok"
+            try:
+                from django.contrib.auth import get_user_model
+                import secrets
+                probe_name = f"_health_probe_{secrets.token_hex(6)}"
+                probe_user = get_user_model().objects.create(username=probe_name)
+                probe_user.delete()
+            except Exception as orm_write_exc:
+                orm_write_status = f"{orm_write_exc.__class__.__name__}: {orm_write_exc}"
             from django.contrib.auth import get_user_model
             from core.models import Member, Organization, OrganizationMembership
             return JsonResponse({
                 "service": "chamaa",
-                "status": "ok" if write_status == "ok" else "degraded",
+                "status": "ok" if write_status == "ok" and orm_write_status == "ok" else "degraded",
                 "database": database_status,
                 "write_probe": write_status,
+                "orm_write_probe": orm_write_status,
                 "models": {
                     "users": get_user_model().objects.count(),
                     "organizations": Organization.objects.count(),
