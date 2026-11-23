@@ -251,6 +251,23 @@ class MemberAccountTests(TestCase):
         })
         self.assertRedirects(response, "/account/dashboard/")
 
+    def test_member_can_login_with_username_case_difference(self):
+        user = User.objects.create_user(
+            username="Ian_Abungana",
+            email="admin@example.com",
+            password="Strong-password-123",
+        )
+        Member.objects.create(
+            organization=self.organization,
+            user=user,
+            membership_number="SMCF-ADMIN-CASE",
+        )
+        response = self.client.post("/account/login/", {
+            "username": "ian_abungana",
+            "password": "Strong-password-123",
+        })
+        self.assertRedirects(response, "/account/dashboard/")
+
     def test_member_can_login_by_email_and_submit_support_ticket(self):
         user = User.objects.create_user(
             username="amina", email="amina@example.com", password="Strong-password-123",

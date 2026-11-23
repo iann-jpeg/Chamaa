@@ -16,7 +16,7 @@ class Command(BaseCommand):
 
         if username and password:
             User = get_user_model()
-            user = User.objects.filter(username=username).first()
+            user = User.objects.filter(username__iexact=username).first()
             created = user is None
             if user is None:
                 user = User(

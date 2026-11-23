@@ -175,6 +175,8 @@ class MemberAuthenticationForm(AuthenticationForm):
             if not user:
                 member = Member.objects.filter(phone=identifier).first()
                 user = member.user if member else None
+            if not user:
+                user = User.objects.filter(username__iexact=identifier).first()
             username = user.username if user else identifier
             self.user_cache = authenticate(self.request, username=username, password=password)
         except Exception as exc:
