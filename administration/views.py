@@ -19,8 +19,10 @@ from core.forms import MemberAuthenticationForm
 
 
 def administration_login(request):
-    from core.views import MemberLoginView
-    return MemberLoginView.as_view(template_name="core/login.html")(request)
+    # Administration uses the same credential form as every other account.
+    # Redirecting here keeps the public URL neutral and does not advertise an
+    # administrator-only login page.
+    return redirect("member-login")
 
 
 def super_admin_required(view):

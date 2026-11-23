@@ -231,13 +231,19 @@ class LandingPageTests(TestCase):
         self.assertContains(response, 'href="/account/register/"')
         self.assertContains(response, 'href="/account/login/"')
         self.assertContains(response, "Questions, Answered.")
-        self.assertContains(response, "Super Admin")
-        self.assertContains(response, "Organization Admin")
+        self.assertNotContains(response, "Super Admin")
+        self.assertNotContains(response, "Organization Admin")
+        self.assertNotContains(response, "Administration Login")
+        self.assertNotContains(response, "/admin/login/")
 
     def test_static_assets_are_resolvable(self):
         css = Path(settings.BASE_DIR) / "static" / "css" / "landing.css"
         script = Path(settings.BASE_DIR) / "static" / "js" / "landing.js"
         favicon = Path(settings.BASE_DIR) / "static" / "favicon.svg"
+        react_script = Path(settings.BASE_DIR) / "static" / "react" / "assets" / "react.js"
+        react_css = Path(settings.BASE_DIR) / "static" / "react" / "assets" / "react.css"
         self.assertTrue(css.is_file())
         self.assertTrue(script.is_file())
         self.assertTrue(favicon.is_file())
+        self.assertTrue(react_script.is_file())
+        self.assertTrue(react_css.is_file())

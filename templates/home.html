@@ -13,6 +13,8 @@
     <meta property="og:url" content="{{ request.build_absolute_uri }}">
     <link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">
     <link rel="stylesheet" href="{% static 'css/landing.css' %}">
+    <link rel="stylesheet" href="{% static 'react/assets/react.css' %}">
+    <script src="{% static 'react/assets/react.js' %}" defer></script>
     <script src="{% static 'js/landing.js' %}" defer></script>
 </head>
 <body>
@@ -44,6 +46,11 @@
 </header>
 
 <main id="main-content">
+    <div
+        id="react-landing"
+        data-login="{% url 'member-login' %}"
+        data-register="{% url 'member-register' %}"
+    >
     <section class="hero">
         <div class="hero-orbit orbit-one"></div>
         <div class="hero-orbit orbit-two"></div>
@@ -102,6 +109,7 @@
             </div>
         </div>
     </section>
+    </div>
 
     <section class="trust-strip" aria-label="CHAMAA capabilities">
         <div class="container">
@@ -299,8 +307,7 @@
         <div class="footer-brand"><a class="brand" href="#top"><span class="brand-mark">C</span><span>CHAMAA</span></a><p>Every Contribution. Every Turn. Every Payout. Automated.</p></div>
         <div><strong>Platform</strong><a href="#how-it-works">How It Works</a><a href="#features">Features</a><a href="#for-chamas">For Chamas</a></div>
         <div><strong>Company</strong><a href="#about">About Us</a><a href="#contact">Contact</a></div>
-        <div><strong>Account</strong><a href="{% url 'member-login' %}">Member Login</a><a href="{% url 'member-register' %}">Member Register</a><a href="{% url 'administration-login' %}">Administration Login</a><a href="/admin/login/">Django Admin</a></div>
-        <div><strong>Administration</strong><a href="{% url 'platform-dashboard' %}">Super Admin</a><a href="{% url 'my-administration-workspace' %}">Organization Admin</a><a href="/admin/">Data Console</a></div>
+        <div><strong>Account</strong><a href="{% url 'member-login' %}">Login</a><a href="{% url 'member-register' %}">Create Account</a></div>
         <div><strong>Legal</strong><a href="/privacy/">Privacy Policy</a><a href="/terms/">Terms and Conditions</a></div>
     </div>
     <div class="container footer-bottom"><span>© {% now "Y" %} CHAMAA. All rights reserved.</span><span>Secure Chama operations</span></div>
