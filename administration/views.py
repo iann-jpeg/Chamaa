@@ -10,8 +10,10 @@ from django.views.decorators.http import require_POST
 from django.contrib.auth.hashers import make_password
 import secrets
 import string
+import logging
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
 
 from core.models import Member, MemberInvitation, Organization, OrganizationMembership
 from finance.models import Cycle, LedgerEntry, WalletWithdrawal
@@ -83,37 +85,47 @@ def audit(request, action, organization=None, target_type="", target_id="", befo
 
 @super_admin_required
 def platform_dashboard(request):
-    organizations = Organization.objects.all()
-    assigned_admin_ids = OrganizationMembership.objects.filter(
-        role=OrganizationMembership.Role.ADMIN,
-        is_active=True,
-    ).values_list("user_id", flat=True)
-    context = {
-        "organizations": organizations.order_by("-created_at")[:8],
-        "total_organizations": organizations.count(),
-        "active_organizations": organizations.filter(status=Organization.Status.ACTIVE).count(),
-        "pending_organizations": organizations.filter(status__in=[Organization.Status.PENDING, Organization.Status.UNDER_REVIEW]).count(),
-        "suspended_organizations": organizations.filter(status=Organization.Status.SUSPENDED).count(),
-        "total_users": User.objects.count(),
-        "active_members": Member.objects.filter(status=Member.Status.ACTIVE).count(),
-        "total_cycles": Cycle.objects.count(),
-        "active_cycles": Cycle.objects.filter(status=Cycle.Status.ACTIVE).count(),
-        "completed_cycles": Cycle.objects.filter(status=Cycle.Status.COMPLETED).count(),
-        "confirmed_contributions": LedgerEntry.objects.filter(status=LedgerEntry.Status.POSTED).count(),
-        "payouts": WalletWithdrawal.objects.filter(status=WalletWithdrawal.Status.SETTLED).count(),
-        "pending_withdrawals": WalletWithdrawal.objects.filter(status=WalletWithdrawal.Status.PENDING).count(),
-        "open_support": 0,
-        "audit_logs": AdministrativeAuditLog.objects.select_related("actor", "organization")[:12],
-        "announcements": PlatformAnnouncement.objects.filter(is_active=True).order_by("-created_at")[:5],
-        "organization_admins": OrganizationMembership.objects.filter(
-            role=OrganizationMembership.Role.ADMIN,
-            is_active=True,
-        ).select_related("organization", "user").order_by("organization__name", "user__username"),
-        "assignable_users": User.objects.filter(is_active=True).exclude(
-            id__in=assigned_admin_ids
-        ).order_by("username"),
-    }
-    return render(request, "administration/platform_dashboard.html", context)
+    try:
+        organizations = Organization.objects.all()
+        assigned_admin_ids = list(
+            OrganizationMembership.objects.filter(
+                role=OrganizationMembership.Role.ADMIN,
+                is_active=True,
+            ).values_list("user_id", flat=True)
+        )
+        context = {
+            "organizations": organizations.order_by("-created_at")[:8],
+            "total_organizations": organizations.count(),
+            "active_organizations": organizations.filter(status=Organization.Status.ACTIVE).count(),
+            "pending_organizations": organizations.filter(status__in=[Organization.Status.PENDING, Organization.Status.UNDER_REVIEW]).count(),
+            "suspended_organizations": organizations.filter(status=Organization.Status.SUSPENDED).count(),
+            "total_users": User.objects.count(),
+            "active_members": Member.objects.filter(status=Member.Status.ACTIVE).count(),
+            "total_cycles": Cycle.objects.count(),
+            "active_cycles": Cycle.objects.filter(status=Cycle.Status.ACTIVE).count(),
+            "completed_cycles": Cycle.objects.filter(status=Cycle.Status.COMPLETED).count(),
+            "confirmed_contributions": LedgerEntry.objects.filter(status=LedgerEntry.Status.POSTED).count(),
+            "payouts": WalletWithdrawal.objects.filter(status=WalletWithdrawal.Status.SETTLED).count(),
+            "pending_withdrawals": WalletWithdrawal.objects.filter(status=WalletWithdrawal.Status.PENDING).count(),
+            "open_support": 0,
+            "audit_logs": list(AdministrativeAuditLog.objects.select_related("actor", "organization")[:12]),
+            "announcements": list(PlatformAnnouncement.objects.filter(is_active=True).order_by("-created_at")[:5]),
+            "organization_admins": list(
+                OrganizationMembership.objects.filter(
+                    role=OrganizationMembership.Role.ADMIN,
+                    is_active=True,
+                ).select_related("organization", "user").order_by("organization__name", "user__username")
+            ),
+            "assignable_users": list(
+                User.objects.filter(is_active=True).exclude(
+                    id__in=assigned_admin_ids
+                ).order_by("username")
+            ) if assigned_admin_ids else list(User.objects.filter(is_active=True).order_by("username")),
+        }
+        return render(request, "administration/platform_dashboard.html", context)
+    except Exception:
+        logger.exception("Platform dashboard failed for super-admin %s", request.user.username)
+        raise
 
 
 @super_admin_required
