@@ -57,7 +57,6 @@ class AdministrationSecurityTests(TestCase):
         self.assertRedirects(
             response,
             "/administration/platform/",
-            fetch_redirect_response=False,
         )
 
     def test_administration_login_url_uses_the_shared_login_form(self):
@@ -66,6 +65,14 @@ class AdministrationSecurityTests(TestCase):
             response,
             "/account/login/",
             fetch_redirect_response=False,
+        )
+
+    def test_authenticated_super_admin_can_open_administration_login(self):
+        self.client.force_login(self.super_admin)
+        response = self.client.get("/administration/login/")
+        self.assertRedirects(
+            response,
+            "/administration/platform/",
         )
 
     def test_organization_admin_login_redirects_to_assigned_organization(self):

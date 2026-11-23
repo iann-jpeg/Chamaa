@@ -22,6 +22,8 @@ def administration_login(request):
     # Administration uses the same credential form as every other account.
     # Redirecting here keeps the public URL neutral and does not advertise an
     # administrator-only login page.
+    if request.user.is_authenticated:
+        return redirect("my-administration-workspace")
     return redirect("member-login")
 
 
