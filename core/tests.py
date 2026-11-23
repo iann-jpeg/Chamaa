@@ -7,6 +7,7 @@ from django.db import DatabaseError
 from datetime import timedelta
 from .models import Member, MemberInvitation, Organization, SupportTicket
 from unittest.mock import patch
+from finance.models import Contribution, Cycle, CycleParticipant
 
 User = get_user_model()
 
@@ -36,6 +37,35 @@ class MemberAccountTests(TestCase):
         self.assertTrue(member.membership_number.startswith("SMCF-"))
         self.assertEqual(member.user.email, "amina@example.com")
         self.assertTrue(member.user.organizationmembership_set.exists())
+
+    def test_registration_enrolls_member_in_open_cycle_with_payment_record(self):
+        cycle = Cycle.objects.create(
+            organization=self.organization,
+            name="Weekly Chama",
+            reference="WEEKLY-1",
+            contribution_amount=100,
+            frequency="weekly",
+            target_participants=10,
+            payout_amount=1000,
+            status=Cycle.Status.RECRUITING,
+        )
+        response = self.client.post("/account/register/", {
+            "first_name": "Amina",
+            "last_name": "Otieno",
+            "username": "amina-cycle",
+            "email": "amina-cycle@example.com",
+            "phone": "+254700000011",
+            "password": "Strong-password-123",
+            "confirm_password": "Strong-password-123",
+            "organization": self.organization.pk,
+            "terms_accepted": "on",
+            "privacy_accepted": "on",
+        })
+        self.assertRedirects(response, "/account/login/")
+        member = Member.objects.get(user__username="amina-cycle")
+        self.assertTrue(CycleParticipant.objects.filter(cycle=cycle, member=member).exists())
+        contribution = Contribution.objects.get(member=member)
+        self.assertEqual(contribution.amount_due, cycle.contribution_amount)
 
     @override_settings(DEBUG=True)
     def test_registration_save_error_is_reported_without_redirecting(self):

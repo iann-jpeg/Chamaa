@@ -5,7 +5,7 @@ from decimal import Decimal
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from core.models import Member, Organization, OrganizationMembership
-from .models import Account, WalletWithdrawal
+from .models import Account, Contribution, ContributionProduct, WalletWithdrawal
 from .services import approve_withdrawal, post_entry
 from django.utils import timezone
 from unittest.mock import patch
@@ -104,3 +104,41 @@ class LedgerTests(TestCase):
         transaction.refresh_from_db()
         self.assertEqual(transaction.status, MpesaTransaction.Status.SUCCESS)
         self.assertEqual(transaction.mpesa_receipt, "TESTRECEIPT1")
+
+    def test_mpesa_callback_retry_is_idempotent(self):
+        product = ContributionProduct.objects.create(
+            organization=self.organization,
+            name="Weekly savings",
+            amount=Decimal("500"),
+        )
+        contribution = Contribution.objects.create(
+            organization=self.organization,
+            member=self.member,
+            product=product,
+            due_date=timezone.now().date(),
+            amount_due=Decimal("500"),
+        )
+        transaction = MpesaTransaction.objects.create(
+            member=self.member,
+            contribution=contribution,
+            phone="254700000001",
+            amount=Decimal("500"),
+            checkout_request_id="checkout-retry-123",
+        )
+        payload = {
+            "Body": {
+                "stkCallback": {
+                    "CheckoutRequestID": "checkout-retry-123",
+                    "ResultCode": 0,
+                    "ResultDesc": "Success",
+                    "CallbackMetadata": {"Item": [
+                        {"Name": "Amount", "Value": 500},
+                        {"Name": "MpesaReceiptNumber", "Value": "RETRY1"},
+                    ]},
+                }
+            }
+        }
+        process_mpesa_callback(payload)
+        process_mpesa_callback(payload)
+        contribution.refresh_from_db()
+        self.assertEqual(contribution.amount_paid, Decimal("500.00"))

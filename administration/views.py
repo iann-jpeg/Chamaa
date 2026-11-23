@@ -358,6 +358,7 @@ def organization_dashboard(request, organization_id):
         "member_count": members.count(),
         "active_members": members.filter(status=Member.Status.ACTIVE).count(),
         "pending_members": members.filter(status=Member.Status.PENDING).count(),
+        "members": members.select_related("user").order_by("-created_at")[:20],
         "cycles": cycles.order_by("-pk")[:8],
         "active_cycles": cycles.filter(status=Cycle.Status.ACTIVE).count(),
         "completed_cycles": cycles.filter(status=Cycle.Status.COMPLETED).count(),

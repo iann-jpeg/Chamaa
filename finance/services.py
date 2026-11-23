@@ -173,6 +173,8 @@ def process_mpesa_callback(payload):
     ).first()
     if mpesa_transaction is None:
         return None
+    if mpesa_transaction.status != MpesaTransaction.Status.PENDING:
+        return mpesa_transaction
 
     result_code = callback.get("ResultCode")
     mpesa_transaction.result_code = result_code

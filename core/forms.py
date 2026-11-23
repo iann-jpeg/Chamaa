@@ -2,6 +2,7 @@ from django import forms
 from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.forms import AuthenticationForm, PasswordResetForm
 from django.core.exceptions import ValidationError
+from django.db import transaction
 from django.utils import timezone
 import logging
 import secrets
@@ -61,6 +62,7 @@ class MemberRegistrationForm(forms.Form):
                     break
         return cleaned
 
+    @transaction.atomic
     def save(self):
         data = self.cleaned_data
         user = None
@@ -110,6 +112,7 @@ class MemberRegistrationForm(forms.Form):
                     if matched_invitation.uses_remaining == 0:
                         matched_invitation.is_active = False
                     matched_invitation.save(update_fields=["uses_remaining", "is_active"])
+            self._create_open_cycle_records(member)
         except Exception:
             if user is not None:
                 from .models import OrganizationMembership, MemberNotificationPreference
@@ -121,6 +124,44 @@ class MemberRegistrationForm(forms.Form):
                 get_user_model().objects.filter(pk=user.pk).delete()
             raise
         return member
+
+    @staticmethod
+    def _create_open_cycle_records(member):
+        """Enroll a new member in open cycles and create the first payment due."""
+        from finance.models import Contribution, ContributionProduct, Cycle, CycleParticipant
+
+        cycles = Cycle.objects.filter(
+            organization=member.organization,
+            status__in=[Cycle.Status.RECRUITING, Cycle.Status.ACTIVE],
+        )
+        for cycle in cycles:
+            participant_number = (
+                CycleParticipant.objects.filter(cycle=cycle)
+                .order_by("-number")
+                .values_list("number", flat=True)
+                .first()
+                or 0
+            ) + 1
+            participation, created = CycleParticipant.objects.get_or_create(
+                cycle=cycle,
+                member=member,
+                defaults={"number": participant_number},
+            )
+            if not created:
+                continue
+            product, _ = ContributionProduct.objects.get_or_create(
+                organization=member.organization,
+                name=f"{cycle.name} contribution",
+                frequency=cycle.frequency,
+                defaults={"amount": cycle.contribution_amount},
+            )
+            Contribution.objects.create(
+                organization=member.organization,
+                member=member,
+                product=product,
+                due_date=cycle.starts_on or timezone.localdate(),
+                amount_due=cycle.contribution_amount,
+            )
 
 
 class MemberAuthenticationForm(AuthenticationForm):
