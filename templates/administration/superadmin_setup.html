@@ -1,0 +1,25 @@
+{% extends "core/base.html" %}
+{% block title %}Super-admin setup | CHAMAA{% endblock %}
+{% block panel_title %}Set up platform<br>administration.{% endblock %}
+{% block panel_text %}Create the one platform super-admin account. This setup page closes permanently after the first account is created.{% endblock %}
+{% block content %}
+<div class="auth-header">
+    <span class="auth-kicker">ONE-TIME ADMIN SETUP</span>
+    <h2>Create super-admin account</h2>
+    <p>Use these credentials for future platform administration access.</p>
+</div>
+{% if error %}<div class="form-errors" role="alert">{{ error }}</div>{% endif %}
+<form class="auth-form" method="post">
+    {% csrf_token %}
+    <label class="field-label" for="id_username">Username</label>
+    <input id="id_username" name="username" maxlength="150" required autocomplete="username">
+    <label class="field-label" for="id_email">Email address</label>
+    <input id="id_email" name="email" type="email" required autocomplete="email">
+    <label class="field-label" for="id_password">Password</label>
+    <input id="id_password" name="password" type="password" minlength="8" required autocomplete="new-password">
+    <label class="field-label" for="id_confirm_password">Confirm password</label>
+    <input id="id_confirm_password" name="confirm_password" type="password" minlength="8" required autocomplete="new-password">
+    <button class="primary-button" type="submit"><span>Create super-admin account</span><span aria-hidden="true">→</span></button>
+</form>
+<p class="auth-switch"><a href="{% url 'member-login' %}">Return to sign in</a></p>
+{% endblock %}

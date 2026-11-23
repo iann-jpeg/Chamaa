@@ -7,6 +7,7 @@ from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
+from django.contrib.auth.hashers import make_password
 import secrets
 import string
 
@@ -25,6 +26,36 @@ def administration_login(request):
     if request.user.is_authenticated:
         return redirect("my-administration-workspace")
     return redirect("member-login")
+
+
+def superadmin_setup(request):
+    if User.objects.filter(is_superuser=True).exists():
+        return redirect("member-login")
+    if request.method == "POST":
+        username = request.POST.get("username", "").strip()
+        email = request.POST.get("email", "").strip().lower()
+        password = request.POST.get("password", "")
+        confirmation = request.POST.get("confirm_password", "")
+        if not username or not email or len(password) < 8 or password != confirmation:
+            return render(request, "administration/superadmin_setup.html", {
+                "error": "Enter all details, use a password of at least 8 characters, and confirm the password.",
+            }, status=400)
+        if User.objects.filter(username__iexact=username).exists() or User.objects.filter(email__iexact=email).exists():
+            return render(request, "administration/superadmin_setup.html", {
+                "error": "That username or email is already registered.",
+            }, status=400)
+        user = User.objects.create(
+            username=username,
+            email=email,
+            password=make_password(password),
+            is_active=True,
+            is_staff=True,
+            is_superuser=True,
+        )
+        from django.contrib import messages
+        messages.success(request, "Super-admin account created. Sign in to open the platform administration workspace.")
+        return redirect("member-login")
+    return render(request, "administration/superadmin_setup.html")
 
 
 def super_admin_required(view):

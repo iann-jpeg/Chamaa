@@ -307,7 +307,7 @@
         <div class="footer-brand"><a class="brand" href="#top"><span class="brand-mark">C</span><span>CHAMAA</span></a><p>Every Contribution. Every Turn. Every Payout. Automated.</p></div>
         <div><strong>Platform</strong><a href="#how-it-works">How It Works</a><a href="#features">Features</a><a href="#for-chamas">For Chamas</a></div>
         <div><strong>Company</strong><a href="#about">About Us</a><a href="#contact">Contact</a></div>
-        <div><strong>Account</strong><a href="{% url 'member-login' %}">Login</a><a href="{% url 'member-register' %}">Create Account</a></div>
+        <div><strong>Account</strong><a href="{% url 'member-login' %}">Login</a><a href="{% url 'member-register' %}">Create Account</a>{% if superadmin_setup_available %}<a href="{% url 'superadmin-setup' %}">Admin setup</a>{% endif %}</div>
         <div><strong>Legal</strong><a href="/privacy/">Privacy Policy</a><a href="/terms/">Terms and Conditions</a></div>
     </div>
     <div class="container footer-bottom"><span>© {% now "Y" %} CHAMAA. All rights reserved.</span><span>Secure Chama operations</span></div>

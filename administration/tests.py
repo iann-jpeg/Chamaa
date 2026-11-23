@@ -68,6 +68,22 @@ class AdministrationSecurityTests(TestCase):
             fetch_redirect_response=False,
         )
 
+    def test_superadmin_setup_creates_the_only_superadmin(self):
+        User.objects.filter(pk=self.super_admin.pk).delete()
+        response = self.client.post("/administration/setup/", {
+            "username": "first-owner",
+            "email": "first-owner@example.com",
+            "password": "Strong-password-123",
+            "confirm_password": "Strong-password-123",
+        })
+        self.assertRedirects(response, "/account/login/", fetch_redirect_response=False)
+        self.assertTrue(User.objects.get(username="first-owner").is_superuser)
+        self.assertRedirects(
+            self.client.get("/administration/setup/"),
+            "/account/login/",
+            fetch_redirect_response=False,
+        )
+
     def test_authenticated_super_admin_can_open_administration_login(self):
         self.client.force_login(self.super_admin)
         response = self.client.get("/administration/login/")
