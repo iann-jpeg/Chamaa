@@ -67,6 +67,29 @@ class MemberAccountTests(TestCase):
         contribution = Contribution.objects.get(member=member)
         self.assertEqual(contribution.amount_due, cycle.contribution_amount)
 
+    def test_existing_member_can_join_recruiting_cycle_and_get_payment_record(self):
+        user = User.objects.create_user(username="existing", password="safe-password")
+        member = Member.objects.create(
+            organization=self.organization,
+            user=user,
+            membership_number="SMCF-EXISTING",
+        )
+        cycle = Cycle.objects.create(
+            organization=self.organization,
+            name="Open cycle",
+            reference="OPEN-1",
+            contribution_amount=250,
+            frequency="monthly",
+            target_participants=10,
+            payout_amount=2500,
+            status=Cycle.Status.RECRUITING,
+        )
+        self.client.force_login(user)
+        response = self.client.post(f"/account/cycles/{cycle.pk}/join/")
+        self.assertRedirects(response, "/account/dashboard/")
+        self.assertTrue(CycleParticipant.objects.filter(cycle=cycle, member=member).exists())
+        self.assertTrue(Contribution.objects.filter(member=member, amount_due=250).exists())
+
     @override_settings(DEBUG=True)
     def test_registration_save_error_is_reported_without_redirecting(self):
         with patch("core.forms.MemberRegistrationForm.save", side_effect=RuntimeError("mongo write failed")):

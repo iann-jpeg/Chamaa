@@ -82,6 +82,20 @@
             </aside>
         </section>
 
+        {% if available_cycles %}
+        <section class="panel available-cycles">
+            <div class="panel-heading"><div><span>OPEN FOR MEMBERS</span><h2>Join a cycle</h2></div></div>
+            {% for cycle in available_cycles %}
+            <div class="cycle-row">
+                <div class="cycle-symbol">{{ cycle.name|first|upper }}</div>
+                <div class="cycle-info"><strong>{{ cycle.name }}</strong><small>{{ cycle.reference }} · {{ cycle.frequency|capfirst }} · KES {{ cycle.contribution_amount }} per payment</small></div>
+                <div class="position"><small>MEMBERS</small><strong>{{ cycle.participants.count }}/{{ cycle.target_participants }}</strong></div>
+                <form method="post" action="{% url 'join-cycle' cycle.pk %}">{% csrf_token %}<button class="join-cycle-button" type="submit">Join cycle</button></form>
+            </div>
+            {% endfor %}
+        </section>
+        {% endif %}
+
         <section class="bottom-grid">
             <article class="panel" id="contributions">
                 <div class="panel-heading"><div><span>PAYMENT RECORDS</span><h2>Recent contributions</h2></div></div>

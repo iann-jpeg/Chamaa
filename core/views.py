@@ -7,9 +7,9 @@ import os
 from django.db import IntegrityError
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
-from .forms import MemberAuthenticationForm, MemberRegistrationForm
+from .forms import MemberAuthenticationForm, MemberRegistrationForm, ensure_open_cycle_records
 from .models import Member, MemberNotification, SupportTicket
-from finance.models import Contribution, CycleParticipant
+from finance.models import Contribution, Cycle, CycleParticipant
 
 logger = logging.getLogger(__name__)
 
@@ -128,9 +128,14 @@ def register(request):
 @login_required
 def dashboard(request):
     member = get_object_or_404(Member, user=request.user)
+    ensure_open_cycle_records(member)
     participations = CycleParticipant.objects.filter(member=member).select_related("cycle")
     contributions = Contribution.objects.filter(member=member).select_related("product").order_by("-due_date")[:6]
     mpesa_transactions = member.mpesa_transactions.order_by("-created_at")[:5]
+    available_cycles = Cycle.objects.filter(
+        organization=member.organization,
+        status=Cycle.Status.RECRUITING,
+    ).exclude(participants__member=member).order_by("starts_on", "name")
     return render(request, "core/dashboard.html", {
         "member": member,
         "notifications": member.notifications.all()[:5],
@@ -138,7 +143,23 @@ def dashboard(request):
         "participations": participations,
         "contributions": contributions,
         "mpesa_transactions": mpesa_transactions,
+        "available_cycles": available_cycles,
     })
+
+
+@login_required
+@require_POST
+def join_cycle(request, cycle_id):
+    member = get_object_or_404(Member, user=request.user)
+    cycle = get_object_or_404(
+        Cycle,
+        pk=cycle_id,
+        organization=member.organization,
+        status=Cycle.Status.RECRUITING,
+    )
+    ensure_open_cycle_records(member, Cycle.objects.filter(pk=cycle.pk))
+    messages.success(request, f"You joined {cycle.name}. Your first contribution is ready for M-Pesa payment.")
+    return redirect("member-dashboard")
 
 
 @login_required
