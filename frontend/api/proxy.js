@@ -25,8 +25,11 @@ export default async function handler(request) {
       const value = request.headers.get(name);
       if (value) headers.set(name, value);
     }
-    headers.set("Origin", url.origin);
-    headers.set("Referer", url.origin + originalPath);
+    const browserOrigin =
+      request.headers.get("origin") ||
+      (url.origin && url.origin !== "null" ? url.origin : "https://chamaa-chi.vercel.app");
+    headers.set("Origin", browserOrigin);
+    headers.set("Referer", request.headers.get("referer") || browserOrigin + originalPath);
     headers.set("X-Forwarded-Host", url.host);
     headers.set("X-Forwarded-Proto", "https");
 

@@ -179,6 +179,8 @@ CSRF_TRUSTED_ORIGINS = [
 CSRF_TRUSTED_ORIGINS += [
     "https://chamaa-chi.vercel.app",
     "https://chamaa-6kzn.onrender.com",
+    "https://*.vercel.app",
+    "https://*.onrender.com",
 ]
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
