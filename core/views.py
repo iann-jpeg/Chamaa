@@ -5,8 +5,10 @@ from django.contrib.auth.views import LoginView
 import logging
 import os
 from django.db import IntegrityError
+from django.db.models import F, Sum
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
+from django.utils import timezone
 from .forms import MemberAuthenticationForm, MemberRegistrationForm, ensure_open_cycle_records
 from .models import Member, MemberNotification, SupportTicket
 from finance.models import Contribution, Cycle, CycleParticipant
@@ -130,18 +132,47 @@ def dashboard(request):
     member = get_object_or_404(Member, user=request.user)
     ensure_open_cycle_records(member)
     participations = CycleParticipant.objects.filter(member=member).select_related("cycle")
-    contributions = Contribution.objects.filter(member=member).select_related("product").order_by("-due_date")[:6]
+    all_contributions = Contribution.objects.filter(member=member).select_related("product")
+    contributions = all_contributions.order_by("-due_date")[:6]
     mpesa_transactions = member.mpesa_transactions.order_by("-created_at")[:5]
     available_cycles = Cycle.objects.filter(
         organization=member.organization,
         status=Cycle.Status.RECRUITING,
     ).exclude(participants__member=member).order_by("starts_on", "name")
+    contribution_totals = all_contributions.aggregate(
+        due=Sum("amount_due"), paid=Sum("amount_paid")
+    )
+    total_due = contribution_totals["due"] or 0
+    total_paid = contribution_totals["paid"] or 0
+    active_participations = participations.filter(cycle__status=Cycle.Status.ACTIVE)
+    next_contribution = all_contributions.filter(
+        amount_paid__lt=F("amount_due"),
+        due_date__gte=timezone.localdate(),
+    ).order_by("due_date").first()
+    next_payout = active_participations.filter(
+        has_received_payout=False,
+    ).order_by("number").first()
+    payout_total = sum(
+        (
+            participation.cycle.payout_amount
+            for participation in participations
+            if participation.has_received_payout
+        ),
+        0,
+    )
     return render(request, "core/dashboard.html", {
         "member": member,
         "notifications": member.notifications.all()[:5],
         "tickets": member.support_tickets.all()[:5],
         "participations": participations,
         "contributions": contributions,
+        "total_paid": total_paid,
+        "total_due": total_due,
+        "outstanding_total": max(total_due - total_paid, 0),
+        "contribution_progress": round((total_paid / total_due) * 100) if total_due else 0,
+        "next_contribution": next_contribution,
+        "next_payout": next_payout,
+        "payout_total": payout_total,
         "mpesa_transactions": mpesa_transactions,
         "available_cycles": available_cycles,
     })

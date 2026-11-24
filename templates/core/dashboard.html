@@ -51,11 +51,11 @@
             <div class="date-card"><small>Member since</small><strong>{{ member.joined_at|default:member.created_at|date:"d M Y" }}</strong></div>
         </section>
 
-        <section class="stats-grid" aria-label="Member overview">
-            <article><div class="stat-icon green">◎</div><div><small>Joined cycles</small><strong>{{ participations|length }}</strong></div></article>
-            <article><div class="stat-icon gold">↗</div><div><small>Contribution records</small><strong>{{ contributions|length }}</strong></div></article>
-            <article><div class="stat-icon blue">◉</div><div><small>Unread notifications</small><strong>{% with unread=notifications|dictsort:"read_at" %}{{ unread|length }}{% endwith %}</strong></div></article>
-            <article><div class="stat-icon rose">?</div><div><small>Open support</small><strong>{{ tickets|length }}</strong></div></article>
+        <section class="stats-grid" aria-label="Member financial overview">
+            <article><div class="stat-icon green">↗</div><div><small>Total contributed</small><strong>KES {{ total_paid|floatformat:0 }}</strong><span class="stat-meta">Across your cycles</span></div></article>
+            <article><div class="stat-icon gold">◷</div><div><small>Outstanding</small><strong>KES {{ outstanding_total|floatformat:0 }}</strong><span class="stat-meta">{% if next_contribution %}Due {{ next_contribution.due_date|date:"d M" }}{% else %}You are up to date{% endif %}</span></div></article>
+            <article><div class="stat-icon blue">◎</div><div><small>Contribution progress</small><strong>{{ contribution_progress }}%</strong><span class="stat-meta">{{ contributions|length }} recent records</span></div></article>
+            <article><div class="stat-icon rose">★</div><div><small>Payouts received</small><strong>KES {{ payout_total|floatformat:0 }}</strong><span class="stat-meta">{% if next_payout %}Next position #{{ next_payout.number }}{% else %}No payout scheduled{% endif %}</span></div></article>
         </section>
 
         <section class="content-grid">
@@ -80,6 +80,13 @@
                 <p>{{ member.membership_number }}</p>
                 <dl><div><dt>Organization</dt><dd>{{ member.organization.name }}</dd></div><div><dt>Mobile</dt><dd>{{ member.phone|default:"Not provided" }}</dd></div><div><dt>Email</dt><dd>{{ member.user.email|default:"Not provided" }}</dd></div></dl>
             </aside>
+        </section>
+
+        <section class="quick-actions" aria-label="Quick actions">
+            <div><span>QUICK ACTIONS</span><h2>Keep your Chama moving</h2></div>
+            <a href="#contributions"><b>↗</b><span><strong>Make a contribution</strong><small>Pay securely with M-Pesa</small></span><i>→</i></a>
+            <a href="#cycles"><b>◎</b><span><strong>View payout schedule</strong><small>See your position and cycle progress</small></span><i>→</i></a>
+            <a href="#support"><b>?</b><span><strong>Contact support</strong><small>Get help from your administrator</small></span><i>→</i></a>
         </section>
 
         {% if available_cycles %}

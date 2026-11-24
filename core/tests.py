@@ -7,7 +7,7 @@ from django.db import DatabaseError
 from datetime import timedelta
 from .models import Member, MemberInvitation, Organization, SupportTicket
 from unittest.mock import patch
-from finance.models import Contribution, Cycle, CycleParticipant
+from finance.models import Contribution, ContributionProduct, Cycle, CycleParticipant
 
 User = get_user_model()
 
@@ -291,6 +291,53 @@ class MemberAccountTests(TestCase):
         })
         self.assertRedirects(response, "/account/dashboard/")
         self.assertTrue(SupportTicket.objects.filter(member=member).exists())
+
+    def test_dashboard_exposes_live_financial_summary(self):
+        user = User.objects.create_user(
+            username="dashboard-member",
+            password="safe-password",
+            first_name="Amina",
+        )
+        member = Member.objects.create(
+            organization=self.organization,
+            user=user,
+            membership_number="SMCF-DASHBOARD",
+            status=Member.Status.ACTIVE,
+        )
+        cycle = Cycle.objects.create(
+            organization=self.organization,
+            name="Growth cycle",
+            reference="GROWTH-1",
+            contribution_amount=500,
+            frequency="monthly",
+            target_participants=2,
+            payout_amount=1000,
+            status=Cycle.Status.ACTIVE,
+        )
+        CycleParticipant.objects.create(cycle=cycle, member=member, number=1)
+        Contribution.objects.create(
+            organization=self.organization,
+            member=member,
+            product=ContributionProduct.objects.create(
+                organization=self.organization,
+                name="Growth contribution",
+                amount=500,
+                frequency="monthly",
+            ),
+            due_date=timezone.localdate(),
+            amount_due=500,
+            amount_paid=300,
+            status=Contribution.Status.PARTIAL,
+        )
+
+        self.client.force_login(user)
+        response = self.client.get("/account/dashboard/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["total_paid"], 300)
+        self.assertEqual(response.context["outstanding_total"], 200)
+        self.assertEqual(response.context["contribution_progress"], 60)
+        self.assertEqual(response.context["next_payout"].number, 1)
 
 
 class LandingPageTests(TestCase):
